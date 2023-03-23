@@ -3,6 +3,7 @@ version: '3'
 services:
   ncm-inference:
     image: philippzagar/ncm-inference:latest
+    container_name: "ncm-inference"
     build: ./inference_pipeline/inference
     ports:
       - "3000:80" # Map host port 3000 to container port 80
@@ -15,6 +16,7 @@ services:
 
   ncm-server:
     image: philippzagar/ncm-server:latest
+    container_name: "ncm-server"
     build: ./inference_pipeline/server
     ports:
       - "8080:8080" # Map host port 8080 to container port 80

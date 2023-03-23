@@ -1,0 +1,14 @@
+session: rtt
+We a need estimates for RTT to derive meaningfull timeout values for
+retransmits and acknowledgements. However, what is 'RTT' in case of coded
+packet networks? Probably we are not talking about echo request/replies here
+but more likely about the minimum time to exchange feedback between session
+endpoints.
+
+generation/session/rlncblock: unidirectional sessions
+Currently we assume bidirectional sessions only. Eventually we want to
+implement alternative coding schemes based on unidirectional sessions sind
+bidirectional ones induce inherent overhead when the underlying PHY is unable
+to benefit.
+
+

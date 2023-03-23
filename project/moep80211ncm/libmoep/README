@@ -1,0 +1,71 @@
+
+Moep library
+============
+
+The Moep library (libmoep) features the moep802.11 and moep802.3 protocols as
+well as the IEEE802.11 and IEEE802.3 protocols.
+
+libmoep also allows for frame injection on 802.11 monitor mode devices with
+per-frame radiotap options such as TX rate / MCS index and RTS/CTS protection.
+Most of these options require small patches of the mac80211 susbsystem and
+device specific drivers.
+
+
+Dependencies
+------------
+
+libmoep depends on:
+
+- libnl-3		http://www.infradead.org/~tgr/libnl/
+
+If you use a git checkout you also need the following dependencies:
+
+- automake		http://www.gnu.org/software/automake/
+- autoconf		http://www.gnu.org/software/autoconf/
+- autoconf-archive	http://www.gnu.org/software/autoconf-archive/
+- libtool		http://www.gnu.org/software/libtool/
+- doxygen		http://www.stack.nl/~dimitri/doxygen/
+
+
+Installation
+------------
+
+To install libmoep you can use the following commands:
+
+	./configure
+	make
+	make install
+
+See ./configure --help for details on the available parameters. For example you
+can use --prefix=DIR to specify the installation prefix or --enable-examples to
+build the example programs.
+
+If you use a git checkout you must run the following command first:
+
+	autoreconf -fi
+
+
+Linux drivers
+-------------
+
+A lot of functionality of libmoep requires some patches to the mac80211
+subsystem. This version is known to work with kernel versions from 3.9 to 4.8.
+Other versions might work as well but are not tested.
+
+You can find appropriate patches for each kernel version in the patches
+directory.
+
+
+Documentation
+-------------
+
+See the bundled html documentation for a detailed description of the
+functionality.
+
+To link your programs against this library use pkg-config or -lmoep.
+
+
+Where to get the latest
+-----------------------
+
+libmoep is available at moep80211.net.

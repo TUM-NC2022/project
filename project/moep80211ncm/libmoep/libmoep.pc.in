@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libmoep
+Description: Moep Library
+Version: @PACKAGE_VERSION@
+Libs: -L${libdir} -lmoep
+Cflags: -I${includedir}

@@ -1,0 +1,40 @@
+version: '3'
+
+services:
+  ncm-inference:
+    image: philippzagar/ncm-inference:latest
+    build: ./inference_pipeline/inference
+    ports:
+      - "3000:80" # Map host port 3000 to container port 80
+    networks:
+      - ncm-network
+    restart: unless-stopped
+    depends_on:
+      ncm-server:
+        condition: service_started
+
+  ncm-server:
+    image: philippzagar/ncm-server:latest
+    build: ./inference_pipeline/server
+    ports:
+      - "8080:8080" # Map host port 8080 to container port 80
+    networks:
+      - ncm-network
+    restart: unless-stopped
+
+  ncm-debian:
+    image: philippzagar/ncm-debian:latest
+    container_name: "ncm-debian"
+    build: ./moep80211ncm
+    platform: linux/amd64 # This is necessary to run the container on a NCM
+    networks:
+      - ncm-network
+    restart: unless-stopped
+    depends_on:
+      ncm-server:
+        condition: service_started
+      ncm-inference:
+        condition: service_started
+
+networks:
+  ncm-network:

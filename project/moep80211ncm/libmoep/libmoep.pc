@@ -1,0 +1,10 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: libmoep
+Description: Moep Library
+Version: 2.0-nc
+Libs: -L${libdir} -lmoep
+Cflags: -I${includedir}

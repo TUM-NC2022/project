@@ -157,7 +157,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.PORT2 }}
           script: |
-            cd /home/philipp/ncm
+            cd /home/philipp/ncm/project
             docker compose down
             docker compose pull
             docker compose up -d

@@ -29,5 +29,8 @@ COPY . .
 # Setups up the libmoep resources and compiles it
 RUN ./setup.sh setupmoep
 
+# Disable ptrace protection
+RUN echo 0 | tee /proc/sys/kernel/yama/ptrace_scope
+
 # Let the container run forever (for dev purposes)
 ENTRYPOINT ["tail", "-f", "/dev/null"]

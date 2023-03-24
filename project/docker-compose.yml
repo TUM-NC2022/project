@@ -43,6 +43,7 @@ services:
     privileged: true
     cap_add:
       - SYS_PTRACE
+    network_mode: host
 
 networks:
   ncm-network:

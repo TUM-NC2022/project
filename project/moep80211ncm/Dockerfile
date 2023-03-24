@@ -20,7 +20,8 @@ RUN apt update && apt install -y \
     m4 \
     automake \
     autoconf \
-    autoconf-archive
+    autoconf-archive \
+    strace
 
 # Copy all source code
 COPY . .

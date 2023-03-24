@@ -22,12 +22,7 @@ RUN apt update && apt install -y \
     autoconf \
     autoconf-archive \
     strace \
-    iputils-ping \
-    iputils-tracepath \
-    iputils-arping \
-    iputils-clockdiff \
-    iputils-tftpd \
-    iputils-ssntp
+    iputils-ping
 
 # Copy all source code
 COPY . .

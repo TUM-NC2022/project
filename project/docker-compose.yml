@@ -32,8 +32,8 @@ services:
     container_name: "ncm-debian"
     build: ./moep80211ncm
     platform: linux/amd64 # This is necessary to run the container on a NCM
-    networks:
-      - ncm-network
+    # networks:
+    #   - ncm-network
     restart: unless-stopped
     depends_on:
       ncm-server:

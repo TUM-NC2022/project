@@ -41,6 +41,8 @@ services:
       ncm-inference:
         condition: service_started
     privileged: true
+    cap_add:
+      - SYS_PTRACE
 
 networks:
   ncm-network:

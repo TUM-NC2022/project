@@ -40,6 +40,7 @@ services:
         condition: service_started
       ncm-inference:
         condition: service_started
+    privileged: true
 
 networks:
   ncm-network:

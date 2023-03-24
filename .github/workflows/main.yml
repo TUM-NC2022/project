@@ -115,7 +115,7 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.PORT2 }}
+          port: ${{ secrets.PORT1 }}
           source: "project/docker-compose.yml"
           target: "/home/philipp/ncm/"
 

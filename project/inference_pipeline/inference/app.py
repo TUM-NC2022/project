@@ -39,7 +39,7 @@ sleep(10)
 # create a socket object
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # get local machine name
-host = socket.gethostbyname("ncm-server")
+host = socket.gethostbyname("host.docker.internal")  # Access the host ip
 # set the port number to connect on
 port = 5000
 # connect to the receiving application

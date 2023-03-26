@@ -174,8 +174,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.PORT1 }}
           script: |
-            cd /home/philipp/ncm/project
-            docker exec -i ncm-debian "cd /home/philipp/ncm/project && ./ncm wlp1s0 2412M -i 10.0.1.32 -hht40+ -r 0 -l 10111"
+            docker exec -i ncm-debian "./ncm wlp1s0 2412M -i 10.0.1.32 -hht40+ -r 0 -l 10111"
       - name: Start Libmoep Slave
         uses: appleboy/ssh-action@master
         with:
@@ -184,8 +183,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.PORT2 }}
           script: |
-            cd /home/philipp/ncm/project
-            docker exec -i ncm-debian "cd /home/philipp/ncm/project && ./ncm wlp1s0 2412M -i 10.0.1.9 -hht40+ -r 0 -l 10222"
+            docker exec -i ncm-debian "./ncm wlp1s0 2412M -i 10.0.1.9 -hht40+ -r 0 -l 10222"
 
   start-ping:
     runs-on: ubuntu-latest

@@ -40,4 +40,4 @@ RUN ./setup.sh setupmoep
 ENTRYPOINT [ "/bin/bash", "-l", "-c" ]
 
 # Let the container run forever (for dev purposes)
-CMD [ "tail", "-f", "/dev/null" ]
+# CMD [ "tail", "-f", "/dev/null" ]

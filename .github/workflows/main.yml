@@ -174,8 +174,9 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.PORT1 }}
           # Add -l 10111 to the command below in order to execute the LQE (with socket pushing etc.)
+          # "&" at the end so that it releases the terminal (so the pipeline job immediatly)
           script: |
-            docker exec -i ncm-debian sh -c "./ncm wlp1s0 2412M -i 10.0.1.32 -hht40+ -r 0"
+            docker exec -i ncm-debian sh -c "./ncm wlp1s0 2412M -i 10.0.1.32 -hht40+ -r 0 &"
       - name: Start Libmoep Slave
         uses: appleboy/ssh-action@master
         with:
@@ -184,8 +185,9 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.PORT2 }}
           # Add -l 10222 to the command below in order to execute the LQE (with socket pushing etc.)
+          # "&" at the end so that it releases the terminal (so the pipeline job immediatly)
           script: |
-            docker exec -i ncm-debian sh -c "./ncm wlp1s0 2412M -i 10.0.1.9 -hht40+ -r 0"
+            docker exec -i ncm-debian sh -c "./ncm wlp1s0 2412M -i 10.0.1.9 -hht40+ -r 0 &"
 
   start-ping:
     runs-on: ubuntu-latest

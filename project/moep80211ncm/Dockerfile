@@ -34,16 +34,16 @@ RUN ./setup.sh setupmoep
 # RUN echo 0 | tee /proc/sys/kernel/yama/ptrace_scope
 
 # Let the container run forever (for dev purposes)
-# ENTRYPOINT ["tail", "-f", "/dev/null"]
+#ENTRYPOINT ["tail", "-f", "/dev/null"]
 
 # To be able to execute binary files via exec
 # ENTRYPOINT [ "/bin/bash", "-l", "-c" ]
 
 # Let the container run forever (for dev purposes)
-# CMD [ "tail", "-f", "/dev/null" ]
+CMD [ "tail", "-f", "/dev/null" ]
 
 # Set the default command to run
-CMD ["tail", "-f", "/dev/null"]
+# CMD ["tail", "-f", "/dev/null"]
 
 # Set the entrypoint to a Bash shell with a login session
-ENTRYPOINT [ "/bin/bash", "-l", "-c" ]
+# ENTRYPOINT [ "/bin/bash", "-l", "-c" ]

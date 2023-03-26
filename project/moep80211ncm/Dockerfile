@@ -34,4 +34,10 @@ RUN ./setup.sh setupmoep
 # RUN echo 0 | tee /proc/sys/kernel/yama/ptrace_scope
 
 # Let the container run forever (for dev purposes)
-ENTRYPOINT ["tail", "-f", "/dev/null"]
+# ENTRYPOINT ["tail", "-f", "/dev/null"]
+
+# To be able to execute binary files via exec
+ENTRYPOINT [ "/bin/bash", "-l", "-c" ]
+
+# Let the container run forever (for dev purposes)
+CMD [ "tail", "-f", "/dev/null" ]

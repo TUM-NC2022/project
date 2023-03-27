@@ -23,11 +23,17 @@ serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # get local machine name
 host = socket.gethostbyname("localhost")
 # set the port number to listen on
-# port = 5000
-port = 10123
+port1 = 5000
+
+# Get data from NCM
+serversocket2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+port2 = 10123
 
 # bind the socket to a specific address and port
-serversocket.bind(("", port))
+serversocket.bind(("", port1))
+
+# NCM port
+serversocket2.bind(("", port2))
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -66,12 +72,15 @@ async def generate_random_data(request: Request) -> Iterator[str]:
 async def receive_data(request: Request) -> Iterator[str]:
     # start listening for incoming connections
     serversocket.listen(1)
+    serversocket2.listen(1)
     # wait for a client to connect
     clientsocket, addr = serversocket.accept()
+    clientsocket2, addr = serversocket2.accept()
 
     while True:
         # receive data from the sender
         num_bytes = clientsocket.recv(4)
+        num_bytes2 = clientsocket2.recv(1000)
 
         # Unpack the byte string into a float
         num = struct.unpack("f", num_bytes)[0]

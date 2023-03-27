@@ -32,8 +32,6 @@ services:
     container_name: "ncm-debian"
     build: ./moep80211ncm
     platform: linux/amd64 # This is necessary to run the container on a NCM
-    # networks:
-    #   - ncm-network
     restart: unless-stopped
     depends_on:
       ncm-server:
@@ -44,6 +42,8 @@ services:
     cap_add:
       - SYS_PTRACE
     network_mode: host
+    # extra_hosts:
+    #  - "host.docker.internal:host-gateway"
 
 networks:
   ncm-network:

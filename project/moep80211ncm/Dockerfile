@@ -23,7 +23,8 @@ RUN apt update && apt install -y \
     autoconf-archive \
     strace \
     iputils-ping \
-    htop
+    htop \
+    tmux
 
 # Copy all source code
 COPY . .

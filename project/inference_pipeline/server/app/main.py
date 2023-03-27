@@ -24,14 +24,16 @@ serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 host = socket.gethostbyname("localhost")
 # set the port number to listen on
 # port = 5000
-port1 = 10111
+port1 = 10123
 
 # bind the socket to a specific address and port
 serversocket.bind(("", port))
 
+
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
 
 @app.get("/chart-data")
 async def chart_data(request: Request) -> StreamingResponse:
@@ -39,6 +41,7 @@ async def chart_data(request: Request) -> StreamingResponse:
     response.headers["Cache-Control"] = "no-cache"
     response.headers["X-Accel-Buffering"] = "no"
     return response
+
 
 async def generate_random_data(request: Request) -> Iterator[str]:
     """
@@ -59,6 +62,7 @@ async def generate_random_data(request: Request) -> Iterator[str]:
         yield f"data:{json_data}\n\n"
         await asyncio.sleep(1)
 
+
 async def receive_data(request: Request) -> Iterator[str]:
     # start listening for incoming connections
     serversocket.listen(1)
@@ -70,10 +74,10 @@ async def receive_data(request: Request) -> Iterator[str]:
         num_bytes = clientsocket.recv(4)
 
         # Unpack the byte string into a float
-        num = struct.unpack('f', num_bytes)[0]
+        num = struct.unpack("f", num_bytes)[0]
 
         # Print the received float
-        print('Received:', num)
+        print("Received:", num)
 
         json_data = json.dumps(
             {
@@ -83,4 +87,3 @@ async def receive_data(request: Request) -> Iterator[str]:
         )
         yield f"data:{json_data}\n\n"
         await asyncio.sleep(1)
-

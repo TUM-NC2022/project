@@ -24,7 +24,7 @@ serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 host = socket.gethostbyname("localhost")
 # set the port number to listen on
 # port = 5000
-port1 = 10123
+port = 10123
 
 # bind the socket to a specific address and port
 serversocket.bind(("", port))

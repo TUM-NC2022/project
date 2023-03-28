@@ -434,7 +434,7 @@ parse_opt(int key, char *arg, struct argp_state *state)
 
 		// Set server address and port
 		address.sin_family = AF_INET;
-		address.sin_addr.s_addr = inet_addr("localhost"); // or host.docker.internal
+		address.sin_addr.s_addr = inet_addr("localhost");
 		address.sin_port = htons(cfg->lqe_socket.port);
 
 		// Connect to the server

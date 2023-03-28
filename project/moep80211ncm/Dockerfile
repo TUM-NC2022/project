@@ -24,7 +24,8 @@ RUN apt update && apt install -y \
     strace \
     iputils-ping \
     htop \
-    tmux
+    tmux \
+    netcat
 
 # Copy all source code
 COPY . .

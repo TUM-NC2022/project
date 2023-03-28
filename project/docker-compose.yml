@@ -43,8 +43,6 @@ services:
     cap_add:
       - SYS_PTRACE
     network_mode: host
-    # extra_hosts:
-    #  - "host.docker.internal:host-gateway"
 
 networks:
   ncm-network:

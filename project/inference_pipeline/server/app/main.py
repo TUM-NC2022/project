@@ -10,6 +10,7 @@ from typing import Iterator
 from datetime import datetime
 import socket
 import struct
+import threading
 
 app = FastAPI()
 
@@ -25,15 +26,35 @@ host = socket.gethostbyname("localhost")
 # set the port number to listen on
 port1 = 5000
 
-# Get data from NCM
-serversocket2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-port2 = 10123
-
 # bind the socket to a specific address and port
 serversocket.bind(("", port1))
 
-# NCM port
-serversocket2.bind(("", port2))
+########################### NCM ############################
+def receive_data_ncm(client_socket_ncm):
+    while True:
+        data = client_socket_ncm.recv(1024)
+        if not data:
+            break
+        print(f"NCM received data: {data.decode()}")
+
+
+# Create a socket object
+server_socket_ncm = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# Bind the socket to a specific IP address and port
+server_address_ncm = ("127.0.0.1", 10123)
+server_socket_ncm.bind(server_address_ncm)
+
+# Listen for incoming connections
+server_socket_ncm.listen(1)
+
+# Accept an incoming connection
+client_socket_ncm, client_address_ncm = server_socket_ncm.accept()
+print("Connected by", client_address_ncm)
+
+# Create a new thread to receive data on the socket
+receive_thread = threading.Thread(target=receive_data_ncm, args=(client_socket_ncm,))
+receive_thread.start()
+########################### NCM ############################
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -80,7 +101,6 @@ async def receive_data(request: Request) -> Iterator[str]:
     while True:
         # receive data from the sender
         num_bytes = clientsocket.recv(4)
-        num_bytes2 = clientsocket2.recv(1000)
 
         # Unpack the byte string into a float
         num = struct.unpack("f", num_bytes)[0]

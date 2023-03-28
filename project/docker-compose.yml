@@ -26,6 +26,11 @@ services:
       - "10123:10123" # Socket connection to ncm-debian (so libmoep)
     networks:
       - ncm-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   ncm-debian:
@@ -36,7 +41,7 @@ services:
     restart: unless-stopped
     depends_on:
       ncm-server:
-        condition: service_started
+        condition: service_healthy
       ncm-inference:
         condition: service_started
     privileged: true

@@ -23,6 +23,7 @@ services:
     ports:
       - "8080:8080" # Map host port 8080 to container port 80
       - "5000:5000" # Socket connection to ncm-inference
+      - "10123:10123" # Socket connection to ncm-debian (so libmoep)
     networks:
       - ncm-network
     restart: unless-stopped

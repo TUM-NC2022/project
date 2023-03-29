@@ -1,0 +1,28 @@
+version: '3'
+services:
+  inference:
+    build:
+      context: ./inference
+    depends_on:
+      server:
+        condition: service_started
+    restart: always
+    ports:
+      - "127.0.0.1:80:80"
+    expose:
+      - "80"
+    networks:
+      - my-network
+  server:
+    build:
+      context: ./server
+    ports:
+      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:5000:5000"
+    expose:
+      - "8080"
+      - "5000"
+    networks:
+      - my-network
+networks:
+  my-network:

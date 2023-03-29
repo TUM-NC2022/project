@@ -48,8 +48,8 @@ print(f"Inference listening on port {PORT_NCM_INF}")
 
 ## -------------------------------- Inference -> Dashboard --------------------------------
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#host = socket.gethostbyname("host.docker.internal")  # Access the host ip
-host = socket.gethostbyname('server')  # Access the host ip # TODO to be removed
+host = socket.gethostbyname("host.docker.internal")  # Access the host ip
+#host = socket.gethostbyname('server')  # Access the host ip # TODO to be removed
 print(host)
 PORT_INF_DASH = 5000
 s.connect((host, PORT_INF_DASH))

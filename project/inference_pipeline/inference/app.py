@@ -33,6 +33,9 @@ expected_size = struct.calcsize(expected_format)
 ncm_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ncm_socket.bind(("localhost", PORT_NCM_INF))
 ncm_socket.listen(1)
+
+# wait for a client to connect
+clientsocket, addr = ncm_socket.accept()
 print(f"Inference listening on port {PORT_NCM_INF}")
 ## ----------------------------------------------------------------------------------------
 

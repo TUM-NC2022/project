@@ -11,4 +11,4 @@ COPY . /app
 EXPOSE 80
 
 # Run app.py when the container launches
-CMD ["python", "ncm_mock.py", "--host", "0.0.0.0", "--port", "81"]
+CMD ["python", "ncm_mock.py", "--host", "0.0.0.0", "--port", "80"]

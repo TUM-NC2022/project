@@ -23,8 +23,14 @@ services:
     ports:
       - "8080:8080" # Map host port 8080 to container port 80
       - "5000:5000" # Socket connection to ncm-inference
+      - "10123:10123" # Socket connection to ncm-debian (so libmoep)
     networks:
       - ncm-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   ncm-debian:
@@ -32,12 +38,10 @@ services:
     container_name: "ncm-debian"
     build: ./moep80211ncm
     platform: linux/amd64 # This is necessary to run the container on a NCM
-    # networks:
-    #   - ncm-network
     restart: unless-stopped
     depends_on:
       ncm-server:
-        condition: service_started
+        condition: service_healthy
       ncm-inference:
         condition: service_started
     privileged: true

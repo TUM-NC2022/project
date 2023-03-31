@@ -92,7 +92,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push API
+      - name: Build and push NCM
         uses: docker/build-push-action@v3
         with:
           context: project/moep80211ncm
@@ -161,3 +161,45 @@ jobs:
             docker compose down
             docker compose pull
             docker compose up -d
+
+  start-libmoep:
+    runs-on: ubuntu-latest
+    needs: [deploy-1, deploy-2]
+    steps:
+      - name: Start Libmoep Master
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PORT1 }}
+          # Add -l 10123 to the command below in order to execute the LQE (with socket pushing etc.)
+          # -l 10123
+          script: |
+            docker exec -i ncm-debian sh -c "tmux new-session -d -s ncm ./ncm wlp1s0 2412M -i 10.0.1.32 -hht40+ -r 0 -l 10123"
+
+      - name: Start Libmoep Slave
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PORT2 }}
+          # Add -l 10123 to the command below in order to execute the LQE (with socket pushing etc.)
+          # -l 10123
+          script: |
+            docker exec -i ncm-debian sh -c "tmux new-session -d -s ncm ./ncm wlp1s0 2412M -i 10.0.1.9 -hht40+ -r 0 -l 10123"
+
+  start-ping:
+    runs-on: ubuntu-latest
+    needs: [start-libmoep]
+    steps:
+      - name: Start Ping
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PORT1 }}
+          script: |
+            docker exec -i ncm-debian sh -c "tmux new-session -d -s ping ping -s 1200 10.0.1.9"

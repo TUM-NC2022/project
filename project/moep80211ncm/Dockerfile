@@ -22,7 +22,10 @@ RUN apt update && apt install -y \
     autoconf \
     autoconf-archive \
     strace \
-    iputils-ping
+    iputils-ping \
+    htop \
+    tmux \
+    netcat
 
 # Copy all source code
 COPY . .
@@ -34,4 +37,4 @@ RUN ./setup.sh setupmoep
 # RUN echo 0 | tee /proc/sys/kernel/yama/ptrace_scope
 
 # Let the container run forever (for dev purposes)
-ENTRYPOINT ["tail", "-f", "/dev/null"]
+CMD [ "tail", "-f", "/dev/null" ]

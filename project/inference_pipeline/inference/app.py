@@ -24,6 +24,54 @@ np.set_printoptions(suppress=True)
 
 memory = joblib.Memory(location=".cache", verbose=0)
 
+## ----------------------------------- NCM -> Inference -----------------------------------
+HOST = "localhost"
+PORT_NCM_INF = 10123
+expected_format = "32siffffffffffiiffiiiiiiiiiiiiiiiiiii"
+expected_size = struct.calcsize(expected_format)
+
+ncm_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+ncm_socket.bind(("localhost", PORT_NCM_INF))
+ncm_socket.listen(1)
+print(f"Inference listening on port {PORT_NCM_INF}")
+## ----------------------------------------------------------------------------------------
+
+# ########################### NCM ############################
+# def receive_data_ncm(client_socket_ncm):
+#     while True:
+#         data = client_socket_ncm.recv(1024)
+#         if not data:
+#             break
+#         print(f"NCM received data: {data.decode()}")
+
+
+# # Create a socket object
+# server_socket_ncm = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# # Bind the socket to a specific IP address and port
+# server_address_ncm = ("127.0.0.1", 10123)
+# server_socket_ncm.bind(server_address_ncm)
+
+# # Listen for incoming connections
+# server_socket_ncm.listen(1)
+
+# # Accept an incoming connection
+# client_socket_ncm, client_address_ncm = server_socket_ncm.accept()
+# print("Connected by", client_address_ncm)
+
+# # Create a new thread to receive data on the socket
+# receive_thread = threading.Thread(target=receive_data_ncm, args=(client_socket_ncm,))
+# receive_thread.start()
+# ########################### NCM ############################
+
+
+## --------------------------------- Inference -> Server ----------------------------------
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#host = socket.gethostbyname("host.docker.internal")  # Access the host ip #TODO
+host = socket.gethostbyname('ncm-server')  # Access the host ip # TODO to be removed
+print(host)
+PORT_INF_DASH = 5000
+s.connect((host, PORT_INF_DASH))
+## ----------------------------------------------------------------------------------------
 
 def prr_to_label(prr: float) -> str:
     if prr >= 0.9:
@@ -34,26 +82,6 @@ def prr_to_label(prr: float) -> str:
 
 
 labels = ["good", "interm.", "bad"]
-
-## ----------------------------------- NCM -> Inference -----------------------------------
-HOST = "localhost"
-PORT_NCM_INF = 10123
-expected_format = "32siffffffffffiiffiiiiiiiiiiiiiiiiiii"
-expected_size = struct.calcsize(expected_format)
-
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.bind(("localhost", PORT_NCM_INF))
-server_socket.listen(1)
-print(f"Inference listening on port {PORT_NCM_INF}")
-
-## -------------------------------- Inference -> Dashboard --------------------------------
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-host = socket.gethostbyname("host.docker.internal")  # Access the host ip
-#host = socket.gethostbyname('server')  # Access the host ip # TODO to be removed
-print(host)
-PORT_INF_DASH = 5000
-s.connect((host, PORT_INF_DASH))
-
 
 ## general inits
 @memory.cache
@@ -189,7 +217,7 @@ def convert_rssi_to_value(rssi):
     
 ## ---------------------------------- Runtime with dtree ----------------------------------
 while True:
-    connection, address = server_socket.accept()
+    connection, address = ncm_socket.accept()
     print(f"Connected by: {address}")
 
     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), flush=True)

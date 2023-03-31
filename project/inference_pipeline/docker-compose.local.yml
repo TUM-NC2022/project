@@ -1,28 +1,54 @@
 version: '3'
+
 services:
-  inference:
-    build:
-      context: ./inference
+  ncm-inference:
+    image: philippzagar/ncm-inference:latest
+    container_name: "ncm-inference"
+    build: ./inference
+    ports:
+      - "3000:80" # Map host port 3000 to container port 80
+      - "10123:10123" # Socket connection to ncm-debian (so libmoep)
+    networks:
+      - ncm-network
+    restart: unless-stopped
     depends_on:
-      server:
+      ncm-server:
         condition: service_started
-    restart: always
-    ports:
-      - "127.0.0.1:80:80"
     expose:
-      - "80"
-    networks:
-      - my-network
-  server:
-    build:
-      context: ./server
+      - "3000"
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+
+  ncm-server:
+    image: philippzagar/ncm-server:latest
+    container_name: "ncm-server"
+    build: ./server
     ports:
-      - "127.0.0.1:8080:8080"
-      - "127.0.0.1:5000:5000"
-    expose:
-      - "8080"
-      - "5000"
+      - "8080:8080" # Map host port 8080 to container port 80
+      - "5000:5000" # Socket connection to ncm-inference
     networks:
-      - my-network
+      - ncm-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  ncm-debian:
+    image: philippzagar/ncm-debian:latest
+    container_name: "ncm-debian"
+    build: ./ncm_mock
+    restart: unless-stopped
+    depends_on:
+      ncm-server:
+        condition: service_healthy
+      ncm-inference:
+        condition: service_started
+    privileged: true
+    cap_add:
+      - SYS_PTRACE
+    network_mode: host
+
 networks:
-  my-network:
+  ncm-network:

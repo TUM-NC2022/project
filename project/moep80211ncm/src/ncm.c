@@ -565,6 +565,10 @@ signal_handler(struct signalfd_siginfo *siginfo, void *null)
 			LOG(LOG_ERR, "timeout_exec() failed");
 		}
 	}
+	else if (siginfo->ssi_signo == SIGPWR && siginfo->ssi_signo == SIGWINCH)
+	{
+		LOG(LOG_ERR, "signal_handler(): Signal SIGPWR or SIGWINCH received");
+	}
 	else
 	{
 		LOG(LOG_WARNING, "signal_handler(): unknown signal %d",

@@ -202,4 +202,5 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.PORT1 }}
           script: |
+            sleep 3
             docker exec -i ncm-debian sh -c "tmux new-session -d -s ping ping -s 1200 10.0.1.9"

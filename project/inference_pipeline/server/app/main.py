@@ -13,6 +13,8 @@ import struct
 import threading
 import logging
 import multiprocessing
+import asyncio
+
 
 app = FastAPI()
 
@@ -42,7 +44,7 @@ serversocket.bind(("", port1))
 def start_socket_connection_ncm(host, port):
     server_socket_ncm = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket_ncm.bind((host, port))
-    server_socket_ncm.listen(1)
+    server_socket_ncm.listen(5)
     logging.info(f"Started raw socket server at {host}:{port}")
 
     while True:
@@ -55,70 +57,87 @@ def start_socket_connection_ncm(host, port):
         conn.close()
 
 
-def receive_data_ncm(client_socket_ncm):
-    # define your expected format string and expected size
-    expected_format = "32siffffffffffiiffiiiiiiiiiiiiiiiiiii"
-    expected_size = struct.calcsize(expected_format)
-
-    logging.info(f"Info: Wait to receive data from client")
-
+async def receive_data_ncm_new(reader, writer):
     while True:
-        data = client_socket_ncm.recv(1024)
+        data = await reader.read(1024)
         if not data:
-            logging.info(f"Error: Data not properly received")
             break
+        message = data.decode()
+        logging.info(f"Received: {message}")
 
-        if len(data) != expected_size:
-            logging.info(
-                f"Error: Expected {expected_size} bytes but got {len(data)} bytes"
-            )
-        else:
-            session_info = struct.unpack(expected_format, data)
-            session_dict = {
-                # From session info struct
-                "session": session_info[0],
-                "count": session_info[1],
-                "TX_data": session_info[2],
-                "TX_ack": session_info[3],
-                "RX_data": session_info[4],
-                "RX_ack": session_info[5],
-                "RX_EXCESS_DATA": session_info[6],
-                "RX_LATE_DATA": session_info[7],
-                "RX_LATE_ACK": session_info[8],
-                "TX_REDUNDANT": session_info[9],
-                "redundancy": session_info[10],
-                "uplink": session_info[11],
-                "p": session_info[12],
-                "q": session_info[13],
-                "downlink": session_info[14],
-                "qdelay": session_info[15],
-                # From radiotap header
-                "rate": session_info[16],
-                "channelFrequency": session_info[17],
-                "channelFlags": session_info[18],
-                "signal": session_info[19],
-                "noise": session_info[20],
-                "lockQuality": session_info[21],
-                "TX_attenuation": session_info[22],
-                "TX_attenuation_dB": session_info[23],
-                "TX_power": session_info[24],
-                "antenna": session_info[25],
-                "signal_dB": session_info[26],
-                "noise_dB": session_info[27],
-                "RTS_retries": session_info[28],
-                "DATA_retries": session_info[29],
-                "MCS_known": session_info[30],
-                "MCS_flags": session_info[31],
-                "MCS_MCS": session_info[32],
-                # Remote address + Master or Slave
-                "remoteAddress": session_info[33],
-                "masterOrSlave": session_info[34],  # // -1 neither, 0 slave, 1 master
-            }
 
-            logging.info(f"Received data: {session_dict}")
+# def receive_data_ncm(client_socket_ncm):
+#     # define your expected format string and expected size
+#     expected_format = "32siffffffffffiiffiiiiiiiiiiiiiiiiiii"
+#     expected_size = struct.calcsize(expected_format)
 
-    client_socket_ncm.close()
-    logging.info(f"Closed socket")
+#     logging.info(f"Info: Wait to receive data from client")
+
+#     while True:
+#         data = client_socket_ncm.recv(1024)
+#         if not data:
+#             logging.info(f"Error: Data not properly received")
+#             break
+
+#         if len(data) != expected_size:
+#             logging.info(
+#                 f"Error: Expected {expected_size} bytes but got {len(data)} bytes"
+#             )
+#         else:
+#             session_info = struct.unpack(expected_format, data)
+#             session_dict = {
+#                 # From session info struct
+#                 "session": session_info[0],
+#                 "count": session_info[1],
+#                 "TX_data": session_info[2],
+#                 "TX_ack": session_info[3],
+#                 "RX_data": session_info[4],
+#                 "RX_ack": session_info[5],
+#                 "RX_EXCESS_DATA": session_info[6],
+#                 "RX_LATE_DATA": session_info[7],
+#                 "RX_LATE_ACK": session_info[8],
+#                 "TX_REDUNDANT": session_info[9],
+#                 "redundancy": session_info[10],
+#                 "uplink": session_info[11],
+#                 "p": session_info[12],
+#                 "q": session_info[13],
+#                 "downlink": session_info[14],
+#                 "qdelay": session_info[15],
+#                 # From radiotap header
+#                 "rate": session_info[16],
+#                 "channelFrequency": session_info[17],
+#                 "channelFlags": session_info[18],
+#                 "signal": session_info[19],
+#                 "noise": session_info[20],
+#                 "lockQuality": session_info[21],
+#                 "TX_attenuation": session_info[22],
+#                 "TX_attenuation_dB": session_info[23],
+#                 "TX_power": session_info[24],
+#                 "antenna": session_info[25],
+#                 "signal_dB": session_info[26],
+#                 "noise_dB": session_info[27],
+#                 "RTS_retries": session_info[28],
+#                 "DATA_retries": session_info[29],
+#                 "MCS_known": session_info[30],
+#                 "MCS_flags": session_info[31],
+#                 "MCS_MCS": session_info[32],
+#                 # Remote address + Master or Slave
+#                 "remoteAddress": session_info[33],
+#                 "masterOrSlave": session_info[34],  # // -1 neither, 0 slave, 1 master
+#             }
+
+#             logging.info(f"Received data: {session_dict}")
+
+#     client_socket_ncm.close()
+#     logging.info(f"Closed socket")
+
+
+async def start_socket_connection_ncm(host, port):
+    server = await asyncio.start_server(receive_data_ncm_new, host, port)
+    logging.info(f"Started raw socket server at {host}:{port}")
+
+    async with server:
+        await server.serve_forever()
 
 
 @app.on_event("startup")
@@ -126,10 +145,10 @@ async def on_startup():
     host, port = "localhost", 10123
     # server_thread = threading.Thread(target=start_socket_connection_ncm, args=(host, port))
     # server_thread.start()
-    server_process = multiprocessing.Process(
-        target=start_socket_connection_ncm, args=(host, port)
-    )
-    server_process.start()
+    # server_process = multiprocessing.Process(target=start_socket_connection_ncm, args=(host, port))
+    # server_process.start()
+
+    asyncio.create_task(start_socket_connection_ncm(host, port))
 
 
 ########################### NCM ############################

@@ -30,12 +30,24 @@ port1 = 10123
 serversocket.bind(("", port1))
 
 ########################### NCM ############################
-# define your expected format string and expected size
-expected_format = "32siffffffffffiiffiiiiiiiiiiiiiiiiiii"
-expected_size = struct.calcsize(expected_format)
+def start_socket_connection_ncm(host, port):
+    server_socket_ncm = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket_ncm.bind((host, port))
+    server_socket_ncm.listen(5)
+    print(f"Started raw socket server at {host}:{port}")
+
+    while True:
+        conn, addr = server_socket_ncm.accept()
+        print(f"Connected by {addr}")
+        client_thread = threading.Thread(target=receive_data_ncm, args=(conn,))
+        client_thread.start()
 
 
 def receive_data_ncm(client_socket_ncm):
+    # define your expected format string and expected size
+    expected_format = "32siffffffffffiiffiiiiiiiiiiiiiiiiiii"
+    expected_size = struct.calcsize(expected_format)
+
     while True:
         data = client_socket_ncm.recv(1024)
         if not data:
@@ -89,23 +101,13 @@ def receive_data_ncm(client_socket_ncm):
             # Print the decoded data
             print(session_dict)
 
+    client_socket_ncm.close()
 
-# Create a socket object
-server_socket_ncm = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# Bind the socket to a specific IP address and port
-server_address_ncm = ("127.0.0.1", 10123)
-server_socket_ncm.bind(server_address_ncm)
-
-# Listen for incoming connections
-server_socket_ncm.listen(1)
-
-# Accept an incoming connection
-client_socket_ncm, client_address_ncm = server_socket_ncm.accept()
-print("Connected by", client_address_ncm)
-
-# Create a new thread to receive data on the socket
-receive_thread = threading.Thread(target=receive_data_ncm, args=(client_socket_ncm,))
-receive_thread.start()
+@app.on_event("startup")
+async def on_startup():
+    host, port = "127.0.0.1", 10123
+    server_thread = threading.Thread(target=start_socket_connection_ncm, args=(host, port))
+    server_thread.start()
 ########################### NCM ############################
 
 
@@ -120,7 +122,6 @@ async def chart_data(request: Request) -> StreamingResponse:
     response.headers["Cache-Control"] = "no-cache"
     response.headers["X-Accel-Buffering"] = "no"
     return response
-
 
 async def generate_random_data(request: Request) -> Iterator[str]:
     """
@@ -145,10 +146,8 @@ async def generate_random_data(request: Request) -> Iterator[str]:
 async def receive_data(request: Request) -> Iterator[str]:
     # start listening for incoming connections
     serversocket.listen(1)
-    serversocket2.listen(1)
     # wait for a client to connect
     clientsocket, addr = serversocket.accept()
-    clientsocket2, addr = serversocket2.accept()
 
     while True:
         # receive data from the sender

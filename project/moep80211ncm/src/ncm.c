@@ -426,7 +426,7 @@ parse_opt(int key, char *arg, struct argp_state *state)
 		LOG(LOG_INFO, "socket is starting on port %d!", cfg->lqe_socket.port);
 
 		// Wait until the python server is up
-		sleep(10);
+		// sleep(10);
 
 		// Creating socket file descriptor
 		if ((cfg->lqe_socket.client_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)

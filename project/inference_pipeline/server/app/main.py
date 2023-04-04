@@ -12,6 +12,7 @@ import socket
 import struct
 import threading
 import logging
+import multiprocessing
 
 app = FastAPI()
 
@@ -21,10 +22,7 @@ templates = Jinja2Templates(directory="/code/app/templates")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s",
-    handlers=[
-        logging.FileHandler("app.log"),
-        logging.StreamHandler()
-    ]
+    handlers=[logging.FileHandler("app.log"), logging.StreamHandler()],
 )
 
 random.seed()  # Initialize the random number generator
@@ -50,8 +48,11 @@ def start_socket_connection_ncm(host, port):
     while True:
         conn, addr = server_socket_ncm.accept()
         logging.info(f"Connected by {addr}")
-        client_thread = threading.Thread(target=receive_data_ncm, args=(conn,))
-        client_thread.start()
+        # client_thread = threading.Thread(target=receive_data_ncm, args=(conn,))
+        client_process = multiprocessing.Process(target=receive_data_ncm, args=(conn,))
+        # client_thread.start()
+        client_process.start()
+        conn.close()
 
 
 def receive_data_ncm(client_socket_ncm):
@@ -68,7 +69,9 @@ def receive_data_ncm(client_socket_ncm):
             break
 
         if len(data) != expected_size:
-            logging.info(f"Error: Expected {expected_size} bytes but got {len(data)} bytes")
+            logging.info(
+                f"Error: Expected {expected_size} bytes but got {len(data)} bytes"
+            )
         else:
             session_info = struct.unpack(expected_format, data)
             session_dict = {
@@ -120,11 +123,13 @@ def receive_data_ncm(client_socket_ncm):
 
 @app.on_event("startup")
 async def on_startup():
-    host, port = "127.0.0.1", 10123
-    server_thread = threading.Thread(
+    host, port = "localhost", 10123
+    # server_thread = threading.Thread(target=start_socket_connection_ncm, args=(host, port))
+    # server_thread.start()
+    server_process = multiprocessing.Process(
         target=start_socket_connection_ncm, args=(host, port)
     )
-    server_thread.start()
+    server_process.start()
 
 
 ########################### NCM ############################

@@ -565,9 +565,13 @@ signal_handler(struct signalfd_siginfo *siginfo, void *null)
 			LOG(LOG_ERR, "timeout_exec() failed");
 		}
 	}
-	else if (siginfo->ssi_signo == SIGPWR || siginfo->ssi_signo == SIGWINCH)
+	else if (siginfo->ssi_signo == SIGWINCH)
 	{
-		LOG(LOG_ERR, "signal_handler(): Signal SIGPWR or SIGWINCH received");
+		LOG(LOG_WARNING, "signal_handler(): Signal SIGWINCH received (meaning window size changed)");
+	}
+	else if (siginfo->ssi_signo == SIGPIPE)
+	{
+		LOG(LOG_WARNING, "signal_handler(): Signal SIGPIPE received (meaning pipe changes)");
 	}
 	else
 	{

@@ -11,10 +11,21 @@ from datetime import datetime
 import socket
 import struct
 import threading
+import logging
 
 app = FastAPI()
 
 templates = Jinja2Templates(directory="/code/app/templates")
+
+# configure the logger
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    handlers=[
+        logging.FileHandler("app.log"),
+        logging.StreamHandler()
+    ]
+)
 
 random.seed()  # Initialize the random number generator
 
@@ -34,11 +45,11 @@ def start_socket_connection_ncm(host, port):
     server_socket_ncm = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket_ncm.bind((host, port))
     server_socket_ncm.listen(5)
-    print(f"Started raw socket server at {host}:{port}")
+    logging.info(f"Started raw socket server at {host}:{port}")
 
     while True:
         conn, addr = server_socket_ncm.accept()
-        print(f"Connected by {addr}")
+        logging.info(f"Connected by {addr}")
         client_thread = threading.Thread(target=receive_data_ncm, args=(conn,))
         client_thread.start()
 
@@ -54,7 +65,7 @@ def receive_data_ncm(client_socket_ncm):
             break
 
         if len(data) != expected_size:
-            print(f"Error: Expected {expected_size} bytes but got {len(data)} bytes")
+            logging.info(f"Error: Expected {expected_size} bytes but got {len(data)} bytes")
         else:
             session_info = struct.unpack(expected_format, data)
             session_dict = {
@@ -98,10 +109,10 @@ def receive_data_ncm(client_socket_ncm):
                 "masterOrSlave": session_info[34],  # // -1 neither, 0 slave, 1 master
             }
 
-            # Print the decoded data
-            print(session_dict)
+            logging.info(f"Received data: {session_dict}")
 
     client_socket_ncm.close()
+    logging.info(f"Closed socket")
 
 
 @app.on_event("startup")

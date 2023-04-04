@@ -24,7 +24,7 @@ serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # get local machine name
 host = socket.gethostbyname("localhost")
 # set the port number to listen on
-port1 = 10123
+port1 = 5000
 
 # bind the socket to a specific address and port
 serversocket.bind(("", port1))
@@ -103,11 +103,16 @@ def receive_data_ncm(client_socket_ncm):
 
     client_socket_ncm.close()
 
+
 @app.on_event("startup")
 async def on_startup():
     host, port = "127.0.0.1", 10123
-    server_thread = threading.Thread(target=start_socket_connection_ncm, args=(host, port))
+    server_thread = threading.Thread(
+        target=start_socket_connection_ncm, args=(host, port)
+    )
     server_thread.start()
+
+
 ########################### NCM ############################
 
 
@@ -122,6 +127,7 @@ async def chart_data(request: Request) -> StreamingResponse:
     response.headers["Cache-Control"] = "no-cache"
     response.headers["X-Accel-Buffering"] = "no"
     return response
+
 
 async def generate_random_data(request: Request) -> Iterator[str]:
     """

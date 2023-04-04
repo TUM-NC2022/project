@@ -44,7 +44,7 @@ serversocket.bind(("", port1))
 def start_socket_connection_ncm(host, port):
     server_socket_ncm = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket_ncm.bind((host, port))
-    server_socket_ncm.listen(5)
+    server_socket_ncm.listen(1)
     logging.info(f"Started raw socket server at {host}:{port}")
 
     while True:
@@ -59,9 +59,12 @@ def receive_data_ncm(client_socket_ncm):
     expected_format = "32siffffffffffiiffiiiiiiiiiiiiiiiiiii"
     expected_size = struct.calcsize(expected_format)
 
+    logging.info(f"Info: Wait to receive data from client")
+
     while True:
         data = client_socket_ncm.recv(1024)
         if not data:
+            logging.info(f"Error: Data not properly received")
             break
 
         if len(data) != expected_size:

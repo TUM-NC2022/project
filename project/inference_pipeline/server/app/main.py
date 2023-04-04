@@ -123,24 +123,6 @@ def receive_data_ncm(client_socket_ncm):
     logging.info(f"Closed socket")
 
 
-async def receive_data_ncm_new(reader, writer):
-    logging.info(f"Connected by {writer.get_extra_info('peername')}")
-    while True:
-        data = await reader.read(1024)
-        if not data:
-            break
-        message = data.decode()
-        logging.info(f"Received: {message}")
-
-
-# async def start_socket_connection_ncm(host, port):
-#     server = await asyncio.start_server(receive_data_ncm_new, host, port)
-#     logging.info(f"Started raw socket server at {host}:{port}")
-
-#     async with server:
-#         await server.serve_forever()
-
-
 @app.on_event("startup")
 async def on_startup():
     host, port = "0.0.0.0", 10123
@@ -148,10 +130,6 @@ async def on_startup():
         target=start_socket_connection_ncm, args=(host, port)
     )
     server_thread.start()
-    # server_process = multiprocessing.Process(target=start_socket_connection_ncm, args=(host, port))
-    # server_process.start()
-
-    # asyncio.create_task(start_socket_connection_ncm(host, port))
 
 
 ########################### NCM ############################

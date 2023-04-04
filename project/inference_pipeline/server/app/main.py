@@ -57,15 +57,6 @@ def start_socket_connection_ncm(host, port):
         conn.close()
 
 
-async def receive_data_ncm_new(reader, writer):
-    while True:
-        data = await reader.read(1024)
-        if not data:
-            break
-        message = data.decode()
-        logging.info(f"Received: {message}")
-
-
 # def receive_data_ncm(client_socket_ncm):
 #     # define your expected format string and expected size
 #     expected_format = "32siffffffffffiiffiiiiiiiiiiiiiiiiiii"
@@ -132,6 +123,15 @@ async def receive_data_ncm_new(reader, writer):
 #     logging.info(f"Closed socket")
 
 
+async def receive_data_ncm_new(reader, writer):
+    while True:
+        data = await reader.read(1024)
+        if not data:
+            break
+        message = data.decode()
+        logging.info(f"Received: {message}")
+
+
 async def start_socket_connection_ncm(host, port):
     server = await asyncio.start_server(receive_data_ncm_new, host, port)
     logging.info(f"Started raw socket server at {host}:{port}")
@@ -142,7 +142,7 @@ async def start_socket_connection_ncm(host, port):
 
 @app.on_event("startup")
 async def on_startup():
-    host, port = "localhost", 10123
+    host, port = "0.0.0.0", 10123
     # server_thread = threading.Thread(target=start_socket_connection_ncm, args=(host, port))
     # server_thread.start()
     # server_process = multiprocessing.Process(target=start_socket_connection_ncm, args=(host, port))

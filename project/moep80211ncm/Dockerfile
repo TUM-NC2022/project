@@ -25,7 +25,8 @@ RUN apt update && apt install -y \
     iputils-ping \
     htop \
     tmux \
-    netcat
+    netcat \
+    python3
 
 # Copy all source code
 COPY . .

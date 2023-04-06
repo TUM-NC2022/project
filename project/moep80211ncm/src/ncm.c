@@ -425,6 +425,9 @@ parse_opt(int key, char *arg, struct argp_state *state)
 
 		LOG(LOG_INFO, "socket is starting on port %d!", cfg->lqe_socket.port);
 
+		// Wait until the python server is up
+		// sleep(10);
+
 		// Creating socket file descriptor
 		if ((cfg->lqe_socket.client_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
 		{
@@ -434,7 +437,7 @@ parse_opt(int key, char *arg, struct argp_state *state)
 
 		// Set server address and port
 		address.sin_family = AF_INET;
-		address.sin_addr.s_addr = inet_addr("localhost");
+		address.sin_addr.s_addr = inet_addr("127.0.0.1");
 		address.sin_port = htons(cfg->lqe_socket.port);
 
 		// Connect to the server
@@ -561,6 +564,14 @@ signal_handler(struct signalfd_siginfo *siginfo, void *null)
 		{
 			LOG(LOG_ERR, "timeout_exec() failed");
 		}
+	}
+	else if (siginfo->ssi_signo == SIGWINCH)
+	{
+		LOG(LOG_WARNING, "signal_handler(): Signal SIGWINCH received (meaning window size changed)");
+	}
+	else if (siginfo->ssi_signo == SIGPIPE)
+	{
+		LOG(LOG_WARNING, "signal_handler(): Signal SIGPIPE received (meaning pipe changes)");
 	}
 	else
 	{

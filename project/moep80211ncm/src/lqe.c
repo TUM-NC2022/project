@@ -139,7 +139,7 @@ void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket)
         if (send(socket, &session_info_sending, sizeof(lqe_info_data), 0) < 0)
         {
             LOG(LOG_INFO, "session_push_data: Sending data failed!");
-            exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         }
     }
     else

@@ -25,18 +25,18 @@ np.set_printoptions(suppress=True)
 memory = joblib.Memory(location=".cache", verbose=0)
 
 ## ----------------------------------- NCM -> Inference -----------------------------------
-HOST = "localhost"
-PORT_NCM_INF = 10123
-expected_format = "32siffffffffffiiffiiiiiiiiiiiiiiiiiii"
-expected_size = struct.calcsize(expected_format)
+# HOST = "localhost"
+# PORT_NCM_INF = 10123
+# expected_format = "32siffffffffffiiffiiiiiiiiiiiiiiiiiii"
+# expected_size = struct.calcsize(expected_format)
 
-ncm_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-ncm_socket.bind(("localhost", PORT_NCM_INF))
-ncm_socket.listen(1)
+# ncm_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# ncm_socket.bind(("0.0.0.0", PORT_NCM_INF))
+# ncm_socket.listen(5)
 
-# wait for a client to connect
-clientsocket, addr = ncm_socket.accept()
-print(f"Inference listening on port {PORT_NCM_INF}")
+# # wait for a client to connect
+# clientsocket, addr = ncm_socket.accept()
+# print(f"Inference listening on port {PORT_NCM_INF}")
 ## ----------------------------------------------------------------------------------------
 
 # ########################### NCM ############################
@@ -68,12 +68,12 @@ print(f"Inference listening on port {PORT_NCM_INF}")
 
 
 ## --------------------------------- Inference -> Server ----------------------------------
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#host = socket.gethostbyname("host.docker.internal")  # Access the host ip #TODO
-host = socket.gethostbyname('ncm-server')  # Access the host ip # TODO to be removed
-print(host)
-PORT_INF_DASH = 5000
-s.connect((host, PORT_INF_DASH))
+# s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# #host = socket.gethostbyname("host.docker.internal")  # Access the host ip #TODO
+# host = socket.gethostbyname('ncm-server')  # Access the host ip # TODO to be removed
+# print(host)
+# PORT_INF_DASH = 5000
+# s.connect((host, PORT_INF_DASH))
 ## ----------------------------------------------------------------------------------------
 
 def prr_to_label(prr: float) -> str:
@@ -208,6 +208,9 @@ print(X_test)
 y_pred = dtree.predict(X_test)
 print("-----------------")
 print(y_pred)
+# save dtree to a file
+joblib.dump(dtree, "dtree.joblib")
+print("saved model")
 # y_pred = model_selection.cross_val_predict(dtree, X[features].values, y, cv=cv, n_jobs=-1)
 # print(imetrics.classification_report_imbalanced(y, y_pred, labels=labels))
 
@@ -219,86 +222,86 @@ def convert_rssi_to_value(rssi):
         return value if value >= 0 else 0
     
 ## ---------------------------------- Runtime with dtree ----------------------------------
-while True:
-    connection, address = ncm_socket.accept()
-    print(f"Connected by: {address}")
+# while True:
+#     connection, address = ncm_socket.accept()
+#     print(f"Connected by: {address}")
 
-    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), flush=True)
+#     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), flush=True)
 
-    data = connection.recv(1024)
-    if not data:
-        break
+#     data = connection.recv(1024)
+#     if not data:
+#         break
 
-    if len(data) != expected_size:
-        print(f"Error: Expected {expected_size} bytes but got {len(data)} bytes")
-    else:
-        session_info = struct.unpack(expected_format, data)
-        session_dict = {
-            # From session info struct
-            "session": session_info[0],
-            "count": session_info[1],
-            "TX_data": session_info[2],
-            "TX_ack": session_info[3],
-            "RX_data": session_info[4],
-            "RX_ack": session_info[5],
-            "RX_EXCESS_DATA": session_info[6],
-            "RX_LATE_DATA": session_info[7],
-            "RX_LATE_ACK": session_info[8],
-            "TX_REDUNDANT": session_info[9],
-            "redundancy": session_info[10],
-            "uplink": session_info[11],
-            "p": session_info[12],
-            "q": session_info[13],
-            "downlink": session_info[14],
-            "qdelay": session_info[15],
-            # From radiotap header
-            "rate": session_info[16],
-            "channelFrequency": session_info[17],
-            "channelFlags": session_info[18],
-            "signal": session_info[19],
-            "noise": session_info[20],
-            "lockQuality": session_info[21],
-            "TX_attenuation": session_info[22],
-            "TX_attenuation_dB": session_info[23],
-            "TX_power": session_info[24],
-            "antenna": session_info[25],
-            "signal_dB": session_info[26],
-            "noise_dB": session_info[27],
-            "RTS_retries": session_info[28],
-            "DATA_retries": session_info[29],
-            "MCS_known": session_info[30],
-            "MCS_flags": session_info[31],
-            "MCS_MCS": session_info[32],
-            # Remote address + Master or Slave
-            "remoteAddress": session_info[33],
-            "masterOrSlave": session_info[34],  # // -1 neither, 0 slave, 1 master
-        }
+#     if len(data) != expected_size:
+#         print(f"Error: Expected {expected_size} bytes but got {len(data)} bytes")
+#     else:
+#         session_info = struct.unpack(expected_format, data)
+#         session_dict = {
+#             # From session info struct
+#             "session": session_info[0],
+#             "count": session_info[1],
+#             "TX_data": session_info[2],
+#             "TX_ack": session_info[3],
+#             "RX_data": session_info[4],
+#             "RX_ack": session_info[5],
+#             "RX_EXCESS_DATA": session_info[6],
+#             "RX_LATE_DATA": session_info[7],
+#             "RX_LATE_ACK": session_info[8],
+#             "TX_REDUNDANT": session_info[9],
+#             "redundancy": session_info[10],
+#             "uplink": session_info[11],
+#             "p": session_info[12],
+#             "q": session_info[13],
+#             "downlink": session_info[14],
+#             "qdelay": session_info[15],
+#             # From radiotap header
+#             "rate": session_info[16],
+#             "channelFrequency": session_info[17],
+#             "channelFlags": session_info[18],
+#             "signal": session_info[19],
+#             "noise": session_info[20],
+#             "lockQuality": session_info[21],
+#             "TX_attenuation": session_info[22],
+#             "TX_attenuation_dB": session_info[23],
+#             "TX_power": session_info[24],
+#             "antenna": session_info[25],
+#             "signal_dB": session_info[26],
+#             "noise_dB": session_info[27],
+#             "RTS_retries": session_info[28],
+#             "DATA_retries": session_info[29],
+#             "MCS_known": session_info[30],
+#             "MCS_flags": session_info[31],
+#             "MCS_MCS": session_info[32],
+#             # Remote address + Master or Slave
+#             "remoteAddress": session_info[33],
+#             "masterOrSlave": session_info[34],  # // -1 neither, 0 slave, 1 master
+#         }
 
-        rssi_dbm = session_dict["signal"]
+#         rssi_dbm = session_dict["signal"]
 
-        print("signal: " + rssi)
+#         print("signal: " + rssi)
 
-    # plot the dimensions and datatypes
-    rssi = convert_rssi_to_value(rssi_dbm)
-    y_pred = dtree.predict([rssi])
-    print(y_pred)
+#     # plot the dimensions and datatypes
+#     rssi = convert_rssi_to_value(rssi_dbm)
+#     y_pred = dtree.predict([rssi])
+#     print(y_pred)
 
-    if y_pred == ['good']:
-        y_pred = 1
-    elif y_pred == ['bad']:
-        y_pred = 0
-    else:
-        y_pred = 0.5
-    print(y_pred)
+#     if y_pred == ['good']:
+#         y_pred = 1
+#     elif y_pred == ['bad']:
+#         y_pred = 0
+#     else:
+#         y_pred = 0.5
+#     print(y_pred)
 
-    # send the prediction to the receiver
-    # s.send(y_pred[0].encode('utf-8'))
+#     # send the prediction to the receiver
+#     # s.send(y_pred[0].encode('utf-8'))
     
-    # TODO send lqe prediction & noise
-    num_bytes = struct.pack("f", y_pred)
+#     # TODO send lqe prediction & noise
+#     num_bytes = struct.pack("f", y_pred)
     
-    s.sendall(num_bytes)
+#     s.sendall(num_bytes)
 
-    time.sleep(1)
+#     time.sleep(1)
 
 

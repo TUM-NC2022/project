@@ -1,80 +1,20 @@
-from asyncio import sleep
-import os
-import time
 from helper.custom_interpolation import CustomInterpolation
 from helper.custom_merger import CustomMerger
 from helper.prr import PRR
 from helper.synthetic_features import SyntheticFeatures
-from sklearn import neural_network, preprocessing, tree, model_selection
+from sklearn import preprocessing, tree, model_selection
 from imblearn import pipeline, over_sampling
-from imblearn import metrics as imetrics
 import numpy as np
 from datasets.trace1_Rutgers.transform import get_traces as load_rutgers, dtypes
 import joblib
 from typing import List, Tuple
 import pandas as pd
 from sklearn.model_selection import train_test_split
-import socket
-import struct
-import random
-
 SEED = 0xDEADBEEF
 np.random.seed(SEED)
 np.set_printoptions(suppress=True)
 
 memory = joblib.Memory(location=".cache", verbose=0)
-
-## ----------------------------------- NCM -> Inference -----------------------------------
-# HOST = "localhost"
-# PORT_NCM_INF = 10123
-# expected_format = "32siffffffffffiiffiiiiiiiiiiiiiiiiiii"
-# expected_size = struct.calcsize(expected_format)
-
-# ncm_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# ncm_socket.bind(("0.0.0.0", PORT_NCM_INF))
-# ncm_socket.listen(5)
-
-# # wait for a client to connect
-# clientsocket, addr = ncm_socket.accept()
-# print(f"Inference listening on port {PORT_NCM_INF}")
-## ----------------------------------------------------------------------------------------
-
-# ########################### NCM ############################
-# def receive_data_ncm(client_socket_ncm):
-#     while True:
-#         data = client_socket_ncm.recv(1024)
-#         if not data:
-#             break
-#         print(f"NCM received data: {data.decode()}")
-
-
-# # Create a socket object
-# server_socket_ncm = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# # Bind the socket to a specific IP address and port
-# server_address_ncm = ("127.0.0.1", 10123)
-# server_socket_ncm.bind(server_address_ncm)
-
-# # Listen for incoming connections
-# server_socket_ncm.listen(1)
-
-# # Accept an incoming connection
-# client_socket_ncm, client_address_ncm = server_socket_ncm.accept()
-# print("Connected by", client_address_ncm)
-
-# # Create a new thread to receive data on the socket
-# receive_thread = threading.Thread(target=receive_data_ncm, args=(client_socket_ncm,))
-# receive_thread.start()
-# ########################### NCM ############################
-
-
-## --------------------------------- Inference -> Server ----------------------------------
-# s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# #host = socket.gethostbyname("host.docker.internal")  # Access the host ip #TODO
-# host = socket.gethostbyname('ncm-server')  # Access the host ip # TODO to be removed
-# print(host)
-# PORT_INF_DASH = 5000
-# s.connect((host, PORT_INF_DASH))
-## ----------------------------------------------------------------------------------------
 
 def prr_to_label(prr: float) -> str:
     if prr >= 0.9:
@@ -220,88 +160,3 @@ def convert_rssi_to_value(rssi):
     else:
         value = int((127/(-30)) * rssi + 127)
         return value if value >= 0 else 0
-    
-## ---------------------------------- Runtime with dtree ----------------------------------
-# while True:
-#     connection, address = ncm_socket.accept()
-#     print(f"Connected by: {address}")
-
-#     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), flush=True)
-
-#     data = connection.recv(1024)
-#     if not data:
-#         break
-
-#     if len(data) != expected_size:
-#         print(f"Error: Expected {expected_size} bytes but got {len(data)} bytes")
-#     else:
-#         session_info = struct.unpack(expected_format, data)
-#         session_dict = {
-#             # From session info struct
-#             "session": session_info[0],
-#             "count": session_info[1],
-#             "TX_data": session_info[2],
-#             "TX_ack": session_info[3],
-#             "RX_data": session_info[4],
-#             "RX_ack": session_info[5],
-#             "RX_EXCESS_DATA": session_info[6],
-#             "RX_LATE_DATA": session_info[7],
-#             "RX_LATE_ACK": session_info[8],
-#             "TX_REDUNDANT": session_info[9],
-#             "redundancy": session_info[10],
-#             "uplink": session_info[11],
-#             "p": session_info[12],
-#             "q": session_info[13],
-#             "downlink": session_info[14],
-#             "qdelay": session_info[15],
-#             # From radiotap header
-#             "rate": session_info[16],
-#             "channelFrequency": session_info[17],
-#             "channelFlags": session_info[18],
-#             "signal": session_info[19],
-#             "noise": session_info[20],
-#             "lockQuality": session_info[21],
-#             "TX_attenuation": session_info[22],
-#             "TX_attenuation_dB": session_info[23],
-#             "TX_power": session_info[24],
-#             "antenna": session_info[25],
-#             "signal_dB": session_info[26],
-#             "noise_dB": session_info[27],
-#             "RTS_retries": session_info[28],
-#             "DATA_retries": session_info[29],
-#             "MCS_known": session_info[30],
-#             "MCS_flags": session_info[31],
-#             "MCS_MCS": session_info[32],
-#             # Remote address + Master or Slave
-#             "remoteAddress": session_info[33],
-#             "masterOrSlave": session_info[34],  # // -1 neither, 0 slave, 1 master
-#         }
-
-#         rssi_dbm = session_dict["signal"]
-
-#         print("signal: " + rssi)
-
-#     # plot the dimensions and datatypes
-#     rssi = convert_rssi_to_value(rssi_dbm)
-#     y_pred = dtree.predict([rssi])
-#     print(y_pred)
-
-#     if y_pred == ['good']:
-#         y_pred = 1
-#     elif y_pred == ['bad']:
-#         y_pred = 0
-#     else:
-#         y_pred = 0.5
-#     print(y_pred)
-
-#     # send the prediction to the receiver
-#     # s.send(y_pred[0].encode('utf-8'))
-    
-#     # TODO send lqe prediction & noise
-#     num_bytes = struct.pack("f", y_pred)
-    
-#     s.sendall(num_bytes)
-
-#     time.sleep(1)
-
-

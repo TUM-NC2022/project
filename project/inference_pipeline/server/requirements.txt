@@ -4,3 +4,10 @@ uvicorn>=0.15.0,<0.16.0
 matplotlib
 jinja2
 aiofiles
+scikit-learn==0.24.2
+imbalanced-learn==0.8.1
+numpy
+pandas
+tqdm
+matplotlib
+seaborn

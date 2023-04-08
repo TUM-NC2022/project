@@ -1,29 +1,20 @@
-from asyncio import sleep
-import os
-import time
 from helper.custom_interpolation import CustomInterpolation
 from helper.custom_merger import CustomMerger
 from helper.prr import PRR
 from helper.synthetic_features import SyntheticFeatures
-from sklearn import neural_network, preprocessing, tree, model_selection
+from sklearn import preprocessing, tree, model_selection
 from imblearn import pipeline, over_sampling
-from imblearn import metrics as imetrics
 import numpy as np
 from datasets.trace1_Rutgers.transform import get_traces as load_rutgers, dtypes
 import joblib
 from typing import List, Tuple
 import pandas as pd
 from sklearn.model_selection import train_test_split
-import socket
-import struct
-import random
-
 SEED = 0xDEADBEEF
 np.random.seed(SEED)
 np.set_printoptions(suppress=True)
 
 memory = joblib.Memory(location=".cache", verbose=0)
-
 
 def prr_to_label(prr: float) -> str:
     if prr >= 0.9:
@@ -34,17 +25,6 @@ def prr_to_label(prr: float) -> str:
 
 
 labels = ["good", "interm.", "bad"]
-sleep(10)
-## socket
-# create a socket object
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# get local machine name
-host = socket.gethostbyname("host.docker.internal")  # Access the host ip
-# set the port number to connect on
-port = 5000
-# connect to the receiving application
-s.connect((host, port))
-
 
 ## general inits
 @memory.cache
@@ -135,26 +115,9 @@ def poly_features(
 
     return data
 
-
-# multi-layer perceptron init
-resample = over_sampling.RandomOverSampler()
-scaler = preprocessing.StandardScaler()
-mlp = pipeline.make_pipeline(
-    scaler,
-    resample,
-    neural_network.MLPClassifier(
-        hidden_layer_sizes=(
-            100,
-            100,
-            100,
-        ),
-        activation="relu",
-        solver="adam",
-    ),
-)
-
 # decision tree init
-features = ["rssi", "rssi_std", "rssi_avg"]
+features = ["rssi", "rssi_avg"]
+#features = ["rssi"]
 dtree = pipeline.Pipeline(
     [
         ("scaler", preprocessing.StandardScaler()),
@@ -180,29 +143,12 @@ print("-----------------")
 X_train, X_test, y_train, y_test = train_test_split(
     X[features].values, y, random_state=10
 )
-dtree.fit(X_train, y_train)
 print(X_test)
+dtree.fit(X_train, y_train)
+#y_pred = dtree.predict([[0, 7], [1, 7], [2, 7], [3, 7], [5, 7], [7, 7], [10, 7], [20, 7], [30, 7], [40, 7], [50, 7]])
 y_pred = dtree.predict(X_test)
 print("-----------------")
 print(y_pred)
-# y_pred = model_selection.cross_val_predict(dtree, X[features].values, y, cv=cv, n_jobs=-1)
-# print(imetrics.classification_report_imbalanced(y, y_pred, labels=labels))
-
-# use decision tree at runtime
-while True:
-    print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), flush=True)
-    # generate mock data
-    rssi_mock = 1
-
-    # plot the dimensions and datatypes of X_test
-    print([X_test[0]])
-    y_pred = dtree.predict([X_test[0]])
-    print(y_pred)
-
-    random_coice = random.choice([0, 0.5, 1])
-    # send the prediction to the receiver
-    # s.send(y_pred[0].encode('utf-8'))
-    num_bytes = struct.pack("f", random_coice)
-    s.sendall(num_bytes)
-
-    time.sleep(10)
+# save dtree to a file
+joblib.dump(dtree, "dtree.joblib")
+print("saved model")

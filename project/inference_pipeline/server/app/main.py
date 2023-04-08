@@ -10,15 +10,33 @@ from typing import Iterator
 from datetime import datetime
 import socket
 import struct
-import threading
 import logging
-import multiprocessing
 import asyncio
+import numpy as np
+import joblib
+import time
 
 
 app = FastAPI()
+SEED = 0xDEADBEEF
+np.random.seed(SEED)
+np.set_printoptions(suppress=True)
+
+dtree = joblib.load("app/dtree.joblib")
+expected_format = "32siffffffffffiiffiiiiiiiiiiiiiiiiiii"
+expected_size = struct.calcsize(expected_format)
+
+memory = joblib.Memory(location=".cache", verbose=0)
 
 templates = Jinja2Templates(directory="/code/app/templates")
+
+host = "0.0.0.0"
+port = 10123
+server_socket_ncm = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket_ncm.bind((host, port))
+server_socket_ncm.listen(5)
+connection , addr = server_socket_ncm.accept()
+logging.info(f"Started raw socket server at {host}:{port}")
 
 # configure the logger
 logging.basicConfig(
@@ -29,51 +47,44 @@ logging.basicConfig(
 
 random.seed()  # Initialize the random number generator
 
-## socket
-# create a socket object
-serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# get local machine name
-host = socket.gethostbyname("localhost")
-# set the port number to listen on
-port1 = 5000
+labels = ["good", "interm.", "bad"]
 
-# bind the socket to a specific address and port
-serversocket.bind(("", port1))
+def convert_rssi_to_value(rssi):
+    print("RSSI: " + str(rssi))
+    if rssi > -35:
+        return 128  # Error
+    if rssi < -95:
+        return 128  # Error
+    else:
+        # value = int((127/(-30)) * rssi + 127)
+        # value =  round((rssi-(-95))*(127-0)/(-35-(-95))+0)
+        value = rssi + 95
+        return value if value >= 0 else 0 
 
-########################### NCM ############################
-def start_socket_connection_ncm(host, port):
-    server_socket_ncm = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket_ncm.bind((host, port))
-    server_socket_ncm.listen(5)
-    logging.info(f"Started raw socket server at {host}:{port}")
+@app.get("/", response_class=HTMLResponse)
+async def read_root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
+
+@app.get("/chart-data")
+async def chart_data(request: Request) -> StreamingResponse:
+    response = StreamingResponse(receive_data(request), media_type="text/event-stream")
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["X-Accel-Buffering"] = "no"
+    return response
+
+async def receive_data(request: Request) -> Iterator[str]:
+    
     while True:
-        conn, addr = server_socket_ncm.accept()
-        logging.info(f"Connected by {addr}")
-        # client_thread = threading.Thread(target=receive_data_ncm, args=(conn,))
-        client_process = multiprocessing.Process(target=receive_data_ncm, args=(conn,))
-        # client_thread.start()
-        client_process.start()
-        conn.close()
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), flush=True)
 
-
-def receive_data_ncm(client_socket_ncm):
-    # define your expected format string and expected size
-    expected_format = "32siffffffffffiiffiiiiiiiiiiiiiiiiiii"
-    expected_size = struct.calcsize(expected_format)
-
-    logging.info(f"Info: Wait to receive data from client")
-
-    while True:
-        data = client_socket_ncm.recv(1024)
+        data = connection.recv(1024)
         if not data:
-            logging.info(f"Error: Data not properly received")
+            print("no data")
             break
 
         if len(data) != expected_size:
-            logging.info(
-                f"Error: Expected {expected_size} bytes but got {len(data)} bytes"
-            )
+            print(f"Error: Expected {expected_size} bytes but got {len(data)} bytes")
         else:
             session_info = struct.unpack(expected_format, data)
             session_dict = {
@@ -117,78 +128,36 @@ def receive_data_ncm(client_socket_ncm):
                 "masterOrSlave": session_info[34],  # // -1 neither, 0 slave, 1 master
             }
 
-            logging.info(f"Received data: {session_dict}")
+            rssi_dbm = session_dict["signal"]
 
-    client_socket_ncm.close()
-    logging.info(f"Closed socket")
+            # plot the dimensions and datatypes
+            rssi = convert_rssi_to_value(rssi_dbm)
+            # print rssi
+            print("converted rssi: " + str(rssi))
+            y_pred = dtree.predict([[rssi, 7]])
+            print("predicted lqe: " + y_pred)
 
+            if y_pred == ['good']:
+                y_pred = 2
+            elif y_pred == ['bad']:
+                y_pred = 0
+            else:
+                y_pred = 1
 
-@app.on_event("startup")
-async def on_startup():
-    host, port = "0.0.0.0", 10123
-    server_thread = threading.Thread(
-        target=start_socket_connection_ncm, args=(host, port)
-    )
-    server_thread.start()
-
-
-########################### NCM ############################
-
-
-@app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
-
-
-@app.get("/chart-data")
-async def chart_data(request: Request) -> StreamingResponse:
-    response = StreamingResponse(receive_data(request), media_type="text/event-stream")
-    response.headers["Cache-Control"] = "no-cache"
-    response.headers["X-Accel-Buffering"] = "no"
-    return response
-
-
-async def generate_random_data(request: Request) -> Iterator[str]:
-    """
-    Generates random value [good, bad, intermediate] and current timestamp.
-    :return: String containing current timestamp (YYYY-mm-dd HH:MM:SS) and randomly generated data.
-    """
-    client_ip = request.client.host
-
-    while True:
-        lqe = random.choice([0, 0.5, 1])
-
-        json_data = json.dumps(
+            json_data = json.dumps(
             {
                 "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "value": lqe,
+                "lqe": y_pred,
+                "rss": rssi_dbm
             }
-        )
-        yield f"data:{json_data}\n\n"
-        await asyncio.sleep(1)
+            )
+        
+            yield f"data:{json_data}\n\n"
+            print("yielded to dashboard")
 
+            # send lqe back to NCM
+            packed_data = struct.pack('<I', y_pred)
+            connection.sendall(packed_data)
+            print("sent back to NCM")
 
-async def receive_data(request: Request) -> Iterator[str]:
-    # start listening for incoming connections
-    serversocket.listen(1)
-    # wait for a client to connect
-    clientsocket, addr = serversocket.accept()
-
-    while True:
-        # receive data from the sender
-        num_bytes = clientsocket.recv(4)
-
-        # Unpack the byte string into a float
-        num = struct.unpack("f", num_bytes)[0]
-
-        # Print the received float
-        print("Received:", num)
-
-        json_data = json.dumps(
-            {
-                "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "value": num,
-            }
-        )
-        yield f"data:{json_data}\n\n"
         await asyncio.sleep(1)

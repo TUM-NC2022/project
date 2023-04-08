@@ -174,7 +174,7 @@ static struct argp_option options[] = {
 	 .arg = "PORT",
 	 .flags = 0,
 	 .doc = "Enables the push of link quality data to a socket running on the specified PORT"},
-	 {.name = "connection-test",
+	{.name = "connection-test",
 	 .key = 'c',
 	 .arg = "PEER_ADDRESS",
 	 .flags = 0,
@@ -465,8 +465,12 @@ parse_opt(int key, char *arg, struct argp_state *state)
 			exit(EXIT_FAILURE);
 		}
 
+		connection_test_data data;
+		data.peer_address = cfg->lqe.peer_address;
+		data.socket = cfg->lqe.client_fd;
+
 		// Start the receival of link quality estimations in a seperate thread
-		start_connection_test(cfg->lqe.peer_address);
+		start_connection_test(data);
 
 		break;
 	case ARGP_KEY_ARG:

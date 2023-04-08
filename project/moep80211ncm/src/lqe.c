@@ -117,7 +117,7 @@ void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket)
 }
 
 // Starts the thread that receives link quality estimations from the socket connection
-void start_connection_test(struct connection_test_data connection_test_data)
+void start_connection_test(connection_test_data connection_test_data)
 {
     pthread_t tid;
     int rc;
@@ -170,5 +170,5 @@ void *connection_test_thread(void *arg)
         LOG(LOG_INFO, "Received: %d", values[i]);
     }
 
-    pthread_exit(NULL); 
+    pthread_exit(NULL);
 }

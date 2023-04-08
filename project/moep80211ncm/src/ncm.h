@@ -1,6 +1,8 @@
 #ifndef _NCM_H_
 #define _NCM_H_
 
+#include <netinet/in.h>
+
 #include <moep/system.h>
 #include <moep/types.h>
 #include <moep/ieee80211_addr.h>
@@ -8,14 +10,15 @@
 
 #include "frametypes.h"
 
-// PZ
-struct lqe_socket
+// Struct type that holds data regarding the LQE estimation
+struct lqe
 {
 	int client_fd;
 	int port;
+	struct in_addr peer_address;
 };
 
-typedef struct lqe_socket lqe_socket;
+typedef struct lqe lqe;
 
 int ncm_frame_type(moep_frame_t frame);
 

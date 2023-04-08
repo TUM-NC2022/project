@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
 #include <moep/system.h>
 #include <moep/types.h>
 #include <moep/radiotap.h>
@@ -12,7 +15,7 @@
 #include "neighbor.h"
 #include "lqe.h"
 
-// PZ
+// Pushes statistics of the current link via the LQE socket
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket)
@@ -96,41 +99,6 @@ void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket)
     // Copy in order to make sure that data didn't change while sending via socket
     lqe_info_data session_info_sending = session_info;
 
-    /*
-    printf("session: %s\n"
-           "count\t%d\n"
-           "tx.data\t%.2f\n"
-           "tx.ack\t%.2f\n"
-           "rx.data\t%.2f\n"
-           "rx.ack\t%.2f\n"
-           "rx.excess_data\t%.2f\n"
-           "rx.late_data\t%.2f\n"
-           "rx.late_ack\t%.f\n"
-           "tx.redundant\t%.2f\n"
-           "redundancy\t%.2f\n"
-           "uplink\t%.2f\n"
-           "p = %d, q = %d\n"
-           "downlink\t%.2f\n"
-           "qdelay\t%.4f\n"
-           "\n",
-           session_info_sending.session,
-           session_info_sending.count,
-           session_info_sending.TX_data,
-           session_info_sending.TX_ack,
-           session_info_sending.RX_data,
-           session_info_sending.RX_ack,
-           session_info_sending.RX_EXCESS_DATA,
-           session_info_sending.RX_LATE_DATA,
-           session_info_sending.RX_LATE_ACK,
-           session_info_sending.TX_REDUNDANT,
-           session_info_sending.redundancy,
-           session_info_sending.uplink,
-           session_info_sending.p,
-           session_info_sending.q,
-           session_info_sending.downlink,
-           session_info_sending.qdelay);
-    */
-
     // Send the product data to the client
     if (socket != -1)
     {
@@ -146,4 +114,61 @@ void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket)
     {
         LOG(LOG_INFO, "session_push_data: Socket not open!");
     }
+}
+
+// Starts the thread that receives link quality estimations from the socket connection
+void start_connection_test(struct connection_test_data connection_test_data)
+{
+    pthread_t tid;
+    int rc;
+
+    // TODO: Pass the peer_address to the thread
+    rc = pthread_create(&tid, NULL, connection_test_thread, (void *)&connection_test_data);
+    if (rc)
+    {
+        LOG(LOG_ERR, "Return code from pthread_create() is %d\n", rc);
+        exit(EXIT_FAILURE);
+    }
+
+    // Detach the thread
+    pthread_detach(tid);
+}
+
+// Runs in a seperate thread
+// Pings a specified peer address and prints the received link quality estimations
+void *connection_test_thread(void *arg)
+{
+    sleep(3); // Wait for the connection to be established between both nodes
+
+    struct connection_test_data *data = (struct connection_test_data *)arg;
+    FILE *fp;
+    char *peer_address_string = inet_ntoa(data->peer_address);
+    char ping_cmd[100];
+    sprintf(ping_cmd, "ping -c 5 -i 1 -s 1200 %s &", peer_address_string); // 5 times, 1 second interval, 1200 bytes payload
+    LOG(LOG_INFO, "connection_test_thread: %s", ping_cmd);
+    char buffer[128];
+
+    // Execute the ping command
+    system(ping_cmd);
+
+    // Wait for incoming data from LQE socket and print it (should be exacly 5 data points)
+    int values[5];
+    for (int i = 0; i < 5; i++)
+    {
+        int bytes_read = recv(data->socket, &values[i], sizeof(values[i]), 0);
+        if (bytes_read < 0)
+        {
+            perror("recv failed");
+            exit(1);
+        }
+        if (bytes_read == 0)
+        {
+            printf("Socket closed\n");
+            exit(0);
+        }
+        values[i] = ntohl(values[i]);
+        LOG(LOG_INFO, "Received: %d", values[i]);
+    }
+
+    pthread_exit(NULL); 
 }

@@ -16,11 +16,22 @@
 
 <body>
     <div class="container">
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <canvas id="canvas"></canvas>
+        <div class="col">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <canvas id="canvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <canvas id="canvas2"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -64,7 +75,7 @@
                     responsive: true,
                     title: {
                         display: true,
-                        text: 'Creating Real-Time Charts with FastAPI'
+                        text: 'Link Quality Estimation'
                     },
                     tooltips: {
                         mode: 'index',
@@ -87,14 +98,14 @@
                             display: true,
                             ticks: {
                                 min: 0,
-                                max: 1,
-                                stepSize: 0.5,
+                                max: 2,
+                                stepSize: 1,
                                 callback: function (value, index, values) {
                                     if (value === 0) {
                                         return "Bad";
-                                    } else if (value === 0.5) {
-                                        return "Medium";
                                     } else if (value === 1) {
+                                        return "Intermediate";
+                                    } else if (value === 2) {
                                         return "Good";
                                     }
                                 }
@@ -104,19 +115,6 @@
                                 labelString: 'Link Quality'
                             }
                         }]
-
-                        // yAxes: [{
-                        //     display: true,
-                        //     ticks: {
-                        //         min: 0,
-                        //         max: 1,
-                        //         stepSize: 0.5
-                        //     },
-                        //     scaleLabel: {
-                        //         display: true,
-                        //         labelString: 'Value'
-                        //     }
-                        // }]  
                     }
                 }
             };
@@ -134,7 +132,85 @@
                     config.data.datasets[0].data.shift();
                 }
                 config.data.labels.push(data.time);
-                config.data.datasets[0].data.push(data.value);
+                config.data.datasets[0].data.push(data.lqe);
+                lineChart.update();
+            }
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            const config = {
+                type: 'line',
+                data: {
+                    labels: Array(30).fill("0000-00-00 00:00:00"),
+                    datasets: [{
+                        label: "Link Quality",
+                        backgroundColor: 'rgb(255, 99, 13)',
+                        borderColor: 'rgb(255, 99, 13)',
+                        data: Array(30).fill(null),
+                        fill: false,
+                    }],
+                },
+
+                options: {
+                    // show graph line as straight line
+                    elements: {
+                        line: {
+                            tension: 0
+                        }
+                    },
+                    responsive: true,
+                    title: {
+                        display: true,
+                        text: 'Received Signal Strength'
+                    },
+                    tooltips: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    hover: {
+                        mode: 'nearest',
+                        intersect: true
+                    },
+                    scales: {
+                        xAxes: [{
+                            display: true,
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Time'
+                            }
+                        }],
+                        //only show 0, 0.5, 1 values on y-axis and rename them to "Bad", "Medium", "Good"
+                        yAxes: [{
+                            display: true,
+                            ticks: {
+                                min: -95,
+                                max: -35,
+                                stepSize: 1
+                            },
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'RSS'
+                            }
+                        }]
+                    }
+                }
+            };
+
+            const context = document.getElementById('canvas2').getContext('2d');
+
+            const lineChart = new Chart(context, config);
+
+            const source = new EventSource("/chart-data");
+
+            source.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                if (config.data.labels.length === 30) {
+                    config.data.labels.shift();
+                    config.data.datasets[0].data.shift();
+                }
+                config.data.labels.push(data.time);
+                config.data.datasets[0].data.push(data.rss);
                 lineChart.update();
             }
         });

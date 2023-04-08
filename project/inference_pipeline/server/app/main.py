@@ -47,20 +47,18 @@ logging.basicConfig(
 
 random.seed()  # Initialize the random number generator
 
-def prr_to_label(prr: float) -> str:
-    if prr >= 0.9:
-        return "good"
-    elif prr <= 0.1:
-        return "bad"
-    return "interm."
-
 labels = ["good", "interm.", "bad"]
 
 def convert_rssi_to_value(rssi):
-    if rssi < -127:
+    print("RSSI: " + str(rssi))
+    if rssi > -35:
+        return 128  # Error
+    if rssi < -95:
         return 128  # Error
     else:
-        value = int((127/(-30)) * rssi + 127)
+        # value = int((127/(-30)) * rssi + 127)
+        # value =  round((rssi-(-95))*(127-0)/(-35-(-95))+0)
+        value = rssi + 95
         return value if value >= 0 else 0 
 
 @app.get("/", response_class=HTMLResponse)
@@ -135,24 +133,31 @@ async def receive_data(request: Request) -> Iterator[str]:
             # plot the dimensions and datatypes
             rssi = convert_rssi_to_value(rssi_dbm)
             # print rssi
-            print("rssi: " + str(rssi))
-            y_pred = dtree.predict([[rssi]])
-            print(y_pred)
+            print("converted rssi: " + str(rssi))
+            y_pred = dtree.predict([[rssi, 7]])
+            print("predicted lqe: " + y_pred)
 
             if y_pred == ['good']:
-                y_pred = 1
+                y_pred = 2
             elif y_pred == ['bad']:
                 y_pred = 0
             else:
-                y_pred = 0.5
-            print(y_pred)
+                y_pred = 1
 
             json_data = json.dumps(
             {
                 "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "value": y_pred,
+                "lqe": y_pred,
+                "rss": rssi_dbm
             }
             )
+        
             yield f"data:{json_data}\n\n"
+            print("yielded to dashboard")
+
+            # send lqe back to NCM
+            packed_data = struct.pack('<I', y_pred)
+            connection.sendall(packed_data)
+            print("sent back to NCM")
 
         await asyncio.sleep(1)

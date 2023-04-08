@@ -116,8 +116,8 @@ def poly_features(
     return data
 
 # decision tree init
-#features = ["rssi", "rssi_std", "rssi_avg"]
-features = ["rssi"]
+features = ["rssi", "rssi_avg"]
+#features = ["rssi"]
 dtree = pipeline.Pipeline(
     [
         ("scaler", preprocessing.StandardScaler()),
@@ -143,20 +143,12 @@ print("-----------------")
 X_train, X_test, y_train, y_test = train_test_split(
     X[features].values, y, random_state=10
 )
-dtree.fit(X_train, y_train)
 print(X_test)
+dtree.fit(X_train, y_train)
+#y_pred = dtree.predict([[0, 7], [1, 7], [2, 7], [3, 7], [5, 7], [7, 7], [10, 7], [20, 7], [30, 7], [40, 7], [50, 7]])
 y_pred = dtree.predict(X_test)
 print("-----------------")
 print(y_pred)
 # save dtree to a file
 joblib.dump(dtree, "dtree.joblib")
 print("saved model")
-# y_pred = model_selection.cross_val_predict(dtree, X[features].values, y, cv=cv, n_jobs=-1)
-# print(imetrics.classification_report_imbalanced(y, y_pred, labels=labels))
-
-def convert_rssi_to_value(rssi):
-    if rssi < -127:
-        return 128  # Error
-    else:
-        value = int((127/(-30)) * rssi + 127)
-        return value if value >= 0 else 0

@@ -107,7 +107,6 @@ void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket)
         if (send(socket, &session_info_sending, sizeof(lqe_info_data), 0) < 0)
         {
             LOG(LOG_INFO, "session_push_data: Sending data failed!");
-            // exit(EXIT_FAILURE);
         }
     }
     else
@@ -157,6 +156,18 @@ void *connection_test_thread(void *arg)
     char *peer_address_string = inet_ntoa(lqe_data->peer_address);
     char ping_cmd[100];
     sprintf(ping_cmd, "ping -c 5 -i 1 -s 1000 %s", peer_address_string); // 5 times, 1 second interval, 1200 bytes payload
+
+    // Signal handler
+    struct sigaction sa;
+    sa.sa_handler = rt_signal_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+
+    if (sigaction(SIGRTMIN, &sa, NULL) == -1)
+    {
+        perror("sigaction");
+        return 1;
+    }
 
     /*
     // Execute the ping command
@@ -289,4 +300,10 @@ void *receive_lqe_thread(void *arg)
 
     free(lqe_data);
     pthread_exit(NULL);
+}
+
+void rt_signal_handler(int sig)
+{
+    printf("Real-time signal %d received\n", sig);
+    // handle the signal here
 }

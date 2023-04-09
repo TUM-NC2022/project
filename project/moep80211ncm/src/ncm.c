@@ -472,12 +472,12 @@ parse_opt(int key, char *arg, struct argp_state *state)
 			exit(EXIT_FAILURE);
 		}
 
-		lqe_connection_test_data data;
-		data.peer_address = cfg->lqe.peer_address;
-		data.socket = cfg->lqe.client_fd;
+		lqe_connection_test_data connection_test_data;
+		connection_test_data.peer_address = cfg->lqe.peer_address;
+		connection_test_data.socket = cfg->lqe.client_fd;
 
 		// Start the receival of link quality estimations in a seperate thread
-		start_connection_test(data);
+		start_connection_test(connection_test_data);
 
 		break;
 	// Option case that enables the receival of link quality estimations
@@ -489,12 +489,12 @@ parse_opt(int key, char *arg, struct argp_state *state)
 			exit(EXIT_FAILURE);
 		}
 
-		lqe_connection_test_data data;
-		data.peer_address = cfg->lqe.peer_address;
-		data.socket = cfg->lqe.client_fd;
+		lqe_connection_test_data receival_lqe_data;
+		receival_lqe_data.peer_address = cfg->lqe.peer_address;
+		receival_lqe_data.socket = cfg->lqe.client_fd;
 
 		// Start the receival of link quality estimations in a seperate thread
-		receive_link_quality_estimations(data);
+		receive_link_quality_estimations(receival_lqe_data);
 
 		break;
 	case ARGP_KEY_ARG:

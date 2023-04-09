@@ -213,9 +213,9 @@ void *connection_test_thread(void *arg)
     }
 
     // Read the output of the command
-    // while (fgets(buf, sizeof(buf), fp) != NULL) {
-    //     LOG(LOG_INFO, "%s", buf);
-    // }
+    while (fgets(buf, sizeof(buf), fp) != NULL) {
+        LOG(LOG_INFO, "%s", buf);
+    }
 
     // Close the file stream
     status = pclose(fp);

@@ -158,8 +158,8 @@ void *connection_test_thread(void *arg)
     char *peer_address_string = inet_ntoa(lqe_data->peer_address);
     char ping_cmd[100];
     sprintf(ping_cmd, "ping -c 5 -i 1 -s 1200 %s &", peer_address_string); // 5 times, 1 second interval, 1200 bytes payload
-    LOG(LOG_INFO, "Connection test ping command is: %s", ping_cmd);
 
+    /*
     // Execute the ping command
     system(ping_cmd);
     LOG(LOG_INFO, "Connection test ping command is executed");
@@ -186,6 +186,73 @@ void *connection_test_thread(void *arg)
     }
 
     LOG(LOG_INFO, "Connection test completed");
+
+    */
+
+    //char buf[4096];
+    FILE *fp;
+    int status;
+
+    // Execute the command and capture its output
+    fp = popen(ping_cmd, "r");
+    if (fp == NULL) {
+        LOG(LOG_ERR, "Failed to execute the ping command");
+        exit(EXIT_FAILURE);
+    }
+
+    // Read the output of the command
+    // while (fgets(buf, sizeof(buf), fp) != NULL) {
+    //     printf("%s", buf);
+    // }
+
+    // Close the file stream
+    status = pclose(fp);
+    if (status == -1) {
+        LOG(LOG_ERR, "Failed to close the file descriptor reading from the command");
+        exit(EXIT_FAILURE);
+    }
+
+    free(lqe_data);
+    pthread_exit(NULL);
+}
+
+void receive_link_quality_estimations(lqe_connection_test_data data) {
+    // Allocate new memory for the data
+    lqe_connection_test_data *new_data = (lqe_connection_test_data *) malloc(sizeof(lqe_connection_test_data));
+    if (!new_data) {
+        LOG(LOG_ERR, "Error allocating memory for data\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Copy the data to the new memory
+    memcpy(new_data, &data, sizeof(lqe_connection_test_data));
+
+    pthread_t tid;
+    int rc;
+
+    rc = pthread_create(&tid, NULL, receive_lqe_thread, new_data);
+    if (rc)
+    {
+        LOG(LOG_ERR, "Return code from pthread_create() is %d\n", rc);
+        free(new_data);
+        exit(EXIT_FAILURE);
+    }
+
+    LOG(LOG_INFO, "Thread that performs the receival of link quality estimations started");
+
+    // Detach the thread
+    pthread_detach(tid);
+}
+
+void *receive_lqe_thread(void *arg) {
+    lqe_connection_test_data *lqe_data = (lqe_connection_test_data *)arg;
+
+    // Read data from the socket
+    uint32_t data;
+    ssize_t num_read;
+    while ((num_read = read(lqe_data->socket, &data, sizeof(data))) > 0) {
+        printf("Received link quality estimation: %u\n", ntohl(data));
+    }
 
     free(lqe_data);
     pthread_exit(NULL);

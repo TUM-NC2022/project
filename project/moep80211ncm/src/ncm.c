@@ -179,6 +179,11 @@ static struct argp_option options[] = {
 	 .arg = "PEER_ADDRESS",
 	 .flags = 0,
 	 .doc = "Perform a connection test at NCM startup and adjust parameters accordingly"},
+	{.name = "receive link quality estimations",
+	 .key = 'q',
+	 .arg = NULL,
+	 .flags = 0,
+	 .doc = "Starts the receival of link quality estimations and prints it to the console"},
 	{NULL}};
 
 static error_t
@@ -473,6 +478,23 @@ parse_opt(int key, char *arg, struct argp_state *state)
 
 		// Start the receival of link quality estimations in a seperate thread
 		start_connection_test(data);
+
+		break;
+	// Option case that enables the receival of link quality estimations
+	case 'q':
+		// Check if the link quality socket is open
+		if (cfg->lqe.client_fd == -1)
+		{
+			LOG(LOG_ERR, "Transmission of link quality data not configured, this is required for the connection test!");
+			exit(EXIT_FAILURE);
+		}
+
+		lqe_connection_test_data data;
+		data.peer_address = cfg->lqe.peer_address;
+		data.socket = cfg->lqe.client_fd;
+
+		// Start the receival of link quality estimations in a seperate thread
+		receive_link_quality_estimations(data);
 
 		break;
 	case ARGP_KEY_ARG:

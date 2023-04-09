@@ -1,7 +1,7 @@
 #ifndef _LQE_H_
 #define _LQE_H_
 
-#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include <moep/system.h>
 #include <moep/types.h>

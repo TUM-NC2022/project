@@ -117,7 +117,7 @@ void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket)
 }
 
 // Starts the thread that receives link quality estimations from the socket connection
-void start_connection_test(lqe_connection_test_data lqe_connection_test_data)
+void start_connection_test(lqe_connection_test_data data)
 {
     // Allocate new memory for the data
     lqe_connection_test_data *new_data = (lqe_connection_test_data *) malloc(sizeof(lqe_connection_test_data));
@@ -127,7 +127,7 @@ void start_connection_test(lqe_connection_test_data lqe_connection_test_data)
     }
 
     // Copy the data to the new memory
-    memcpy(new_data, &lqe_connection_test_data, sizeof(lqe_connection_test_data));
+    memcpy(new_data, &data, sizeof(lqe_connection_test_data));
 
     pthread_t tid;
     int rc;

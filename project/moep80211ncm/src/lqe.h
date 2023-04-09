@@ -9,7 +9,17 @@
 
 #include "session.h"
 
-// PZ - Struct that holds info about the session that is pushed via LQE socket
+// Struct type that holds data regarding the LQE estimation
+struct lqe
+{
+    int client_fd;
+    int port;
+    struct in_addr peer_address;
+};
+
+typedef struct lqe lqe;
+
+// Struct that holds info about the session that is pushed via LQE socket
 typedef struct
 {
     // From session
@@ -54,16 +64,10 @@ typedef struct
     int masterOrSlave; // -1 neither, 0 slave, 1 master
 } lqe_info_data;
 
-struct thread_data
-{
-    int arg1;
-    char arg2[20];
-};
-
 typedef struct
 {
     int socket;
-    struct in_addr peer_address;
+    in_addr peer_address;
 } lqe_connection_test_data;
 
 // PZ

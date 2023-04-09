@@ -10,16 +10,6 @@
 
 #include "frametypes.h"
 
-// Struct type that holds data regarding the LQE estimation
-struct lqe
-{
-	int client_fd;
-	int port;
-	struct in_addr peer_address;
-};
-
-typedef struct lqe lqe;
-
 int ncm_frame_type(moep_frame_t frame);
 
 /*

@@ -120,8 +120,9 @@ void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket)
 void start_connection_test(lqe_connection_test_data data)
 {
     // Allocate new memory for the data
-    lqe_connection_test_data *new_data = (lqe_connection_test_data *) malloc(sizeof(lqe_connection_test_data));
-    if (!new_data) {
+    lqe_connection_test_data *new_data = (lqe_connection_test_data *)malloc(sizeof(lqe_connection_test_data));
+    if (!new_data)
+    {
         LOG(LOG_ERR, "Error allocating memory for data\n");
         exit(EXIT_FAILURE);
     }
@@ -155,7 +156,7 @@ void *connection_test_thread(void *arg)
     lqe_connection_test_data *lqe_data = (lqe_connection_test_data *)arg;
     char *peer_address_string = inet_ntoa(lqe_data->peer_address);
     char ping_cmd[100];
-    sprintf(ping_cmd, "ping -c 5 -i 1 -s 1200 %s", peer_address_string); // 5 times, 1 second interval, 1200 bytes payload
+    sprintf(ping_cmd, "ping -c 5 -i 1 -s 1000 %s", peer_address_string); // 5 times, 1 second interval, 1200 bytes payload
 
     /*
     // Execute the ping command
@@ -193,19 +194,21 @@ void *connection_test_thread(void *arg)
 
     // Execute the command and capture its output
     fp = popen(ping_cmd, "r");
-    if (fp == NULL) {
+    if (fp == NULL)
+    {
         LOG(LOG_ERR, "Failed to execute the ping command");
         exit(EXIT_FAILURE);
     }
 
     // Read the output of the command
-    while (fgets(buf, sizeof(buf), fp) != NULL) {
-        LOG(LOG_INFO, "%s", buf);
-    }
+    // while (fgets(buf, sizeof(buf), fp) != NULL) {
+    //     LOG(LOG_INFO, "%s", buf);
+    // }
 
     // Close the file stream
     status = pclose(fp);
-    if (status == -1) {
+    if (status == -1)
+    {
         LOG(LOG_ERR, "Failed to close the file descriptor reading from the command");
         exit(EXIT_FAILURE);
     }
@@ -216,10 +219,12 @@ void *connection_test_thread(void *arg)
     pthread_exit(NULL);
 }
 
-void receive_link_quality_estimations(lqe_connection_test_data data) {
+void receive_link_quality_estimations(lqe_connection_test_data data)
+{
     // Allocate new memory for the data
-    lqe_connection_test_data *new_data = (lqe_connection_test_data *) malloc(sizeof(lqe_connection_test_data));
-    if (!new_data) {
+    lqe_connection_test_data *new_data = (lqe_connection_test_data *)malloc(sizeof(lqe_connection_test_data));
+    if (!new_data)
+    {
         LOG(LOG_ERR, "Error allocating memory for data\n");
         exit(EXIT_FAILURE);
     }
@@ -242,7 +247,8 @@ void receive_link_quality_estimations(lqe_connection_test_data data) {
     pthread_detach(tid);
 }
 
-void *receive_lqe_thread(void *arg) {
+void *receive_lqe_thread(void *arg)
+{
     lqe_connection_test_data *lqe_data = (lqe_connection_test_data *)arg;
 
     LOG(LOG_INFO, "Thread that performs the receival of link quality estimations started");
@@ -250,23 +256,32 @@ void *receive_lqe_thread(void *arg) {
     // Read data from the socket
     uint32_t data;
     ssize_t num_read;
-    while (1) {
+    while (1)
+    {
         num_read = read(lqe_data->socket, &data, sizeof(data));
 
-        if (num_read == -1) {
-            if (errno == EINTR) {
+        if (num_read == -1)
+        {
+            if (errno == EINTR)
+            {
                 // Retry the read() call
                 LOG(LOG_ERR, "Retry the read call");
                 continue;
-            } else {
+            }
+            else
+            {
                 LOG(LOG_ERR, "Error while reading from the socket");
                 exit(EXIT_FAILURE);
             }
-        } else if (num_read == 0) {
+        }
+        else if (num_read == 0)
+        {
             // Connection closed by remote peer
             LOG(LOG_ERR, "Connection closed by remote peer");
             break;
-        } else {
+        }
+        else
+        {
             // Data received
             LOG(LOG_INFO, "Received link quality estimation: %u\n", ntohl(data));
         }

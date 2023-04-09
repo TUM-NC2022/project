@@ -265,6 +265,18 @@ void *receive_lqe_thread(void *arg)
 
     LOG(LOG_INFO, "Thread that performs the receival of link quality estimations started");
 
+    // Signal handler
+    struct sigaction sa;
+    sa.sa_handler = rt_signal_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+
+    if (sigaction(SIGRTMIN, &sa, NULL) == -1)
+    {
+        perror("sigaction");
+        return 1;
+    }
+
     // Read data from the socket
     uint32_t data;
     ssize_t num_read;
@@ -305,6 +317,6 @@ void *receive_lqe_thread(void *arg)
 
 void rt_signal_handler(int sig)
 {
-    printf("Real-time signal %d received\n", sig);
+    // printf("Real-time signal %d received\n", sig);
     // handle the signal here
 }

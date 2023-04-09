@@ -140,10 +140,10 @@ void *connection_test_thread(void *arg)
 {
     // sleep(3); // Wait for the connection to be established between both nodes
 
-    struct lqe_connection_test_data *data = (struct lqe_connection_test_data *)arg;
-    char *peer_address_string = inet_ntoa(data->peer_address);
+    lqe_connection_test_data *lqe_data = (lqe_connection_test_data *)arg;
+    char *peer_address_string = inet_ntoa(lqe_data->peer_address);
     char ping_cmd[100];
-    // sprintf(ping_cmd, "ping -c 5 -i 1 -s 1200 %s &", peer_address_string); // 5 times, 1 second interval, 1200 bytes payload
+    sprintf(ping_cmd, "ping -c 5 -i 1 -s 1200 %s &", peer_address_string); // 5 times, 1 second interval, 1200 bytes payload
     LOG(LOG_INFO, "connection_test_thread: %s", ping_cmd);
 
     // Execute the ping command
@@ -153,19 +153,19 @@ void *connection_test_thread(void *arg)
     int values[5];
     for (int i = 0; i < 5; i++)
     {
-        // int bytes_read = recv(data->socket, &values[i], sizeof(values[i]), 0);
-        /*
+        int bytes_read = recv(lqe_data->socket, &values[i], sizeof(values[i]), 0);
+
         if (bytes_read < 0)
         {
-            perror("recv failed");
-            exit(1);
+            LOG(LOG_ERR, "Return code from recv of LQE data socket");
+            exit(EXIT_FAILURE);
         }
         if (bytes_read == 0)
         {
-            printf("Socket closed\n");
-            exit(0);
+            LOG(LOG_ERR, "Socket for recv of LQE data closed");
+            exit(EXIT_FAILURE);
         }
-        */
+
         values[i] = ntohl(values[i]);
         LOG(LOG_INFO, "Received: %d", values[i]);
     }

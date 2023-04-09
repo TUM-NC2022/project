@@ -119,13 +119,24 @@ void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket)
 // Starts the thread that receives link quality estimations from the socket connection
 void start_connection_test(lqe_connection_test_data lqe_connection_test_data)
 {
+    // Allocate new memory for the data
+    lqe_connection_test_data *new_data = (lqe_connection_test_data *) malloc(sizeof(lqe_connection_test_data));
+    if (!new_data) {
+        LOG(LOG_ERR, "Error allocating memory for data\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Copy the data to the new memory
+    memcpy(new_data, &lqe_connection_test_data, sizeof(lqe_connection_test_data));
+
     pthread_t tid;
     int rc;
 
-    rc = pthread_create(&tid, NULL, connection_test_thread, (void *)&lqe_connection_test_data);
+    rc = pthread_create(&tid, NULL, connection_test_thread, new_data);
     if (rc)
     {
         LOG(LOG_ERR, "Return code from pthread_create() is %d\n", rc);
+        free(new_data);
         exit(EXIT_FAILURE);
     }
 
@@ -139,7 +150,7 @@ void start_connection_test(lqe_connection_test_data lqe_connection_test_data)
 // Pings a specified peer address and prints the received link quality estimations
 void *connection_test_thread(void *arg)
 {
-    // sleep(3); // Wait for the connection to be established between both nodes
+    // sleep(10); // Wait for the connection to be established between both nodes
 
     LOG(LOG_INFO, "Connection test is starting");
 
@@ -161,13 +172,13 @@ void *connection_test_thread(void *arg)
 
         if (bytes_read < 0)
         {
-            LOG(LOG_ERR, "Return code from recv of LQE data socket");
-            exit(EXIT_FAILURE);
+            LOG(LOG_ERR, "Error return code from recv of LQE data socket");
+            //exit(EXIT_FAILURE);
         }
         if (bytes_read == 0)
         {
             LOG(LOG_ERR, "Socket for recv of LQE data closed");
-            exit(EXIT_FAILURE);
+            //exit(EXIT_FAILURE);
         }
 
         values[i] = ntohl(values[i]);
@@ -176,5 +187,6 @@ void *connection_test_thread(void *arg)
 
     LOG(LOG_INFO, "Connection test completed");
 
+    free(lqe_data);
     pthread_exit(NULL);
 }

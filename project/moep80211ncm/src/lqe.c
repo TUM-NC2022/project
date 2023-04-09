@@ -140,8 +140,6 @@ void start_connection_test(lqe_connection_test_data data)
         exit(EXIT_FAILURE);
     }
 
-    LOG(LOG_INFO, "Thread that performs the connection test started");
-
     // Detach the thread
     pthread_detach(tid);
 }
@@ -152,12 +150,12 @@ void *connection_test_thread(void *arg)
 {
     // sleep(10); // Wait for the connection to be established between both nodes
 
-    LOG(LOG_INFO, "Connection test is starting");
+    LOG(LOG_INFO, "Thread that performs the connection test started");
 
     lqe_connection_test_data *lqe_data = (lqe_connection_test_data *)arg;
     char *peer_address_string = inet_ntoa(lqe_data->peer_address);
     char ping_cmd[100];
-    sprintf(ping_cmd, "ping -c 5 -i 1 -s 1200 %s &", peer_address_string); // 5 times, 1 second interval, 1200 bytes payload
+    sprintf(ping_cmd, "ping -c 5 -i 1 -s 1200 %s", peer_address_string); // 5 times, 1 second interval, 1200 bytes payload
 
     /*
     // Execute the ping command
@@ -189,7 +187,7 @@ void *connection_test_thread(void *arg)
 
     */
 
-    //char buf[4096];
+    char buf[4096];
     FILE *fp;
     int status;
 
@@ -201,9 +199,9 @@ void *connection_test_thread(void *arg)
     }
 
     // Read the output of the command
-    // while (fgets(buf, sizeof(buf), fp) != NULL) {
-    //     printf("%s", buf);
-    // }
+    while (fgets(buf, sizeof(buf), fp) != NULL) {
+        LOG(LOG_INFO, "%s", buf);
+    }
 
     // Close the file stream
     status = pclose(fp);
@@ -211,6 +209,8 @@ void *connection_test_thread(void *arg)
         LOG(LOG_ERR, "Failed to close the file descriptor reading from the command");
         exit(EXIT_FAILURE);
     }
+
+    LOG(LOG_INFO, "Connection test is finished");
 
     free(lqe_data);
     pthread_exit(NULL);
@@ -238,8 +238,6 @@ void receive_link_quality_estimations(lqe_connection_test_data data) {
         exit(EXIT_FAILURE);
     }
 
-    LOG(LOG_INFO, "Thread that performs the receival of link quality estimations started");
-
     // Detach the thread
     pthread_detach(tid);
 }
@@ -247,11 +245,31 @@ void receive_link_quality_estimations(lqe_connection_test_data data) {
 void *receive_lqe_thread(void *arg) {
     lqe_connection_test_data *lqe_data = (lqe_connection_test_data *)arg;
 
+    LOG(LOG_INFO, "Thread that performs the receival of link quality estimations started");
+
     // Read data from the socket
     uint32_t data;
     ssize_t num_read;
-    while ((num_read = read(lqe_data->socket, &data, sizeof(data))) > 0) {
-        printf("Received link quality estimation: %u\n", ntohl(data));
+    while (1) {
+        num_read = read(lqe_data->socket, &data, sizeof(data));
+
+        if (num_read == -1) {
+            if (errno == EINTR) {
+                // Retry the read() call
+                LOG(LOG_ERR, "Retry the read call");
+                continue;
+            } else {
+                LOG(LOG_ERR, "Error while reading from the socket");
+                exit(EXIT_FAILURE);
+            }
+        } else if (num_read == 0) {
+            // Connection closed by remote peer
+            LOG(LOG_ERR, "Connection closed by remote peer");
+            break;
+        } else {
+            // Data received
+            LOG(LOG_INFO, "Received link quality estimation: %u\n", ntohl(data));
+        }
     }
 
     free(lqe_data);

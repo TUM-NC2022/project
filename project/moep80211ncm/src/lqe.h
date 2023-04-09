@@ -67,7 +67,7 @@ typedef struct
 typedef struct
 {
     int socket;
-    in_addr peer_address;
+    struct in_addr peer_address;
 } lqe_connection_test_data;
 
 // PZ

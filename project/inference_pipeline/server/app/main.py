@@ -76,7 +76,7 @@ async def chart_data(request: Request) -> StreamingResponse:
 async def receive_data(request: Request) -> Iterator[str]:
     
     while True:
-        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), flush=True)
+        print(time.strftime("%H:%M:%S", time.localtime()), flush=True)
 
         data = connection.recv(1024)
         if not data:
@@ -146,7 +146,7 @@ async def receive_data(request: Request) -> Iterator[str]:
 
             json_data = json.dumps(
             {
-                "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "time": datetime.now().strftime("%H:%M:%S"),
                 "lqe": y_pred,
                 "rss": rssi_dbm
             }

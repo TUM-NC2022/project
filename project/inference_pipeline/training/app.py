@@ -145,7 +145,6 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 print(X_test)
 dtree.fit(X_train, y_train)
-#y_pred = dtree.predict([[0, 7], [1, 7], [2, 7], [3, 7], [5, 7], [7, 7], [10, 7], [20, 7], [30, 7], [40, 7], [50, 7]])
 y_pred = dtree.predict(X_test)
 print("-----------------")
 print(y_pred)

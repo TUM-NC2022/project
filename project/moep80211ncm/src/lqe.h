@@ -75,5 +75,6 @@ void start_connection_test(lqe_connection_test_data lqe_connection_test_data);
 void *connection_test_thread(void *arg);
 void receive_link_quality_estimations(lqe_connection_test_data lqe_connection_test_data);
 void *receive_lqe_thread(void *arg);
+void rt_signal_handler(int sig);
 
 #endif

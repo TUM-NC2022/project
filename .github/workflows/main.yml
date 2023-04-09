@@ -191,7 +191,7 @@ jobs:
           # -l 10123
           script: |
             sleep 5
-            docker exec -i ncm-debian sh -c "tmux new-session -d -s ncm ./ncm wlp1s0 2412M -i 10.0.1.9 -hht40+ -r 0 -l 10123 "
+            docker exec -i ncm-debian sh -c "tmux new-session -d -s ncm ./ncm wlp1s0 2412M -i 10.0.1.9 -hht40+ -r 0 -l 10123"
 
   start-ping:
     runs-on: ubuntu-latest

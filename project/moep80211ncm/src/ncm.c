@@ -432,7 +432,7 @@ parse_opt(int key, char *arg, struct argp_state *state)
 		// Creating socket file descriptor
 		if ((cfg->lqe.client_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
 		{
-			LOG(LOG_INFO, "creation of socket failed");
+			LOG(LOG_ERR, "creation of socket failed");
 			exit(EXIT_FAILURE);
 		}
 
@@ -444,7 +444,7 @@ parse_opt(int key, char *arg, struct argp_state *state)
 		// Connect to the server
 		if (connect(cfg->lqe.client_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
 		{
-			LOG(LOG_INFO, "socket connect failed");
+			LOG(LOG_ERR, "socket connect failed");
 			exit(EXIT_FAILURE);
 		}
 
@@ -456,12 +456,14 @@ parse_opt(int key, char *arg, struct argp_state *state)
 		// Parse the peer address argument
 		if (!inet_aton(arg, &cfg->lqe.peer_address))
 			argp_failure(state, 1, errno, "Invalid peer ip address");
-		break;
+
+		char *peer_address_string = inet_ntoa(cfg->lqe.peer_address);
+		LOG(LOG_INFO, "Connection test is starting to peer with ip address %s!", peer_address_string);
 
 		// Check if the link quality socket is open
 		if (cfg->lqe.client_fd == -1)
 		{
-			LOG(LOG_INFO, "Transmission of link quality data not configured, this is required for the connection test!");
+			LOG(LOG_ERR, "Transmission of link quality data not configured, this is required for the connection test!");
 			exit(EXIT_FAILURE);
 		}
 

@@ -19,8 +19,8 @@ If you want to train a decision tree with the Rutgers dataset do the following
 - `docker run training`
 After this is finished (may take up to a couple of minutes) a new dtree.joblib has been created inside the container.
 Now you can replace the current dtree.joblib file of the Server with this new one. For this do the following
-- `Docker ps -a`
-- Select and copy the contaier id of the finished container
+- `docker ps -a`
+- Select and copy the container id of the finished container
 - `docker cp <container id>:app/dtree.joblib ../server/app/`
 
 ### NCM Mock

@@ -122,13 +122,14 @@ void start_connection_test(lqe_connection_test_data lqe_connection_test_data)
     pthread_t tid;
     int rc;
 
-    // TODO: Pass the peer_address to the thread
     rc = pthread_create(&tid, NULL, connection_test_thread, (void *)&lqe_connection_test_data);
     if (rc)
     {
         LOG(LOG_ERR, "Return code from pthread_create() is %d\n", rc);
         exit(EXIT_FAILURE);
     }
+
+    LOG(LOG_INFO, "Thread that performs the connection test started");
 
     // Detach the thread
     pthread_detach(tid);
@@ -140,14 +141,17 @@ void *connection_test_thread(void *arg)
 {
     // sleep(3); // Wait for the connection to be established between both nodes
 
+    LOG(LOG_INFO, "Connection test is starting");
+
     lqe_connection_test_data *lqe_data = (lqe_connection_test_data *)arg;
     char *peer_address_string = inet_ntoa(lqe_data->peer_address);
     char ping_cmd[100];
     sprintf(ping_cmd, "ping -c 5 -i 1 -s 1200 %s &", peer_address_string); // 5 times, 1 second interval, 1200 bytes payload
-    LOG(LOG_INFO, "connection_test_thread: %s", ping_cmd);
+    LOG(LOG_INFO, "Connection test ping command is: %s", ping_cmd);
 
     // Execute the ping command
     system(ping_cmd);
+    LOG(LOG_INFO, "Connection test ping command is executed");
 
     // Wait for incoming data from LQE socket and print it (should be exacly 5 data points)
     int values[5];
@@ -169,6 +173,8 @@ void *connection_test_thread(void *arg)
         values[i] = ntohl(values[i]);
         LOG(LOG_INFO, "Received: %d", values[i]);
     }
+
+    LOG(LOG_INFO, "Connection test completed");
 
     pthread_exit(NULL);
 }

@@ -141,7 +141,7 @@ void *connection_test_thread(void *arg)
     // sleep(3); // Wait for the connection to be established between both nodes
 
     struct lqe_connection_test_data *data = (struct lqe_connection_test_data *)arg;
-    // char *peer_address_string = inet_ntoa(data->peer_address);
+    char *peer_address_string = inet_ntoa(data->peer_address);
     char ping_cmd[100];
     // sprintf(ping_cmd, "ping -c 5 -i 1 -s 1200 %s &", peer_address_string); // 5 times, 1 second interval, 1200 bytes payload
     LOG(LOG_INFO, "connection_test_thread: %s", ping_cmd);

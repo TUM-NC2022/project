@@ -476,18 +476,6 @@ parse_opt(int key, char *arg, struct argp_state *state)
 		connection_test_data.peer_address = cfg->lqe.peer_address;
 		connection_test_data.socket = cfg->lqe.client_fd;
 
-		// Signal handler
-		struct sigaction sa;
-		sa.sa_handler = rt_signal_handler;
-		sigemptyset(&sa.sa_mask);
-		sa.sa_flags = SA_RESTART;
-
-		if (sigaction(SIGRTMIN, &sa, NULL) == -1)
-		{
-			perror("sigaction");
-			return 1;
-		}
-
 		// Start the receival of link quality estimations in a seperate thread
 		start_connection_test(connection_test_data);
 
@@ -1128,10 +1116,4 @@ int main(int argc, char **argv)
 	}
 
 	return ret;
-}
-
-void rt_signal_handler(int sig)
-{
-	printf("Real-time signal %d received\n", sig);
-	// handle the signal here
 }

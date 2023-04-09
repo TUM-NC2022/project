@@ -54,19 +54,21 @@ typedef struct
     int masterOrSlave; // -1 neither, 0 slave, 1 master
 } lqe_info_data;
 
-struct thread_data {
+struct thread_data
+{
     int arg1;
     char arg2[20];
 };
 
-typedef struct {
+typedef struct
+{
     int socket;
     struct in_addr peer_address;
-} connection_test_data;
+} lqe_connection_test_data;
 
 // PZ
 void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket);
-void start_connection_test(struct connection_test_data connection_test_data);
+void start_connection_test(lqe_connection_test_data lqe_connection_test_data);
 void *connection_test_thread(void *arg);
 
 #endif

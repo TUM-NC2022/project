@@ -117,13 +117,13 @@ void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket)
 }
 
 // Starts the thread that receives link quality estimations from the socket connection
-void start_connection_test(connection_test_data connection_test_data)
+void start_connection_test(lqe_connection_test_data lqe_connection_test_data)
 {
     pthread_t tid;
     int rc;
 
     // TODO: Pass the peer_address to the thread
-    rc = pthread_create(&tid, NULL, connection_test_thread, (void *)&connection_test_data);
+    rc = pthread_create(&tid, NULL, connection_test_thread, (void *)&lqe_connection_test_data);
     if (rc)
     {
         LOG(LOG_ERR, "Return code from pthread_create() is %d\n", rc);
@@ -140,7 +140,7 @@ void *connection_test_thread(void *arg)
 {
     sleep(3); // Wait for the connection to be established between both nodes
 
-    struct connection_test_data *data = (struct connection_test_data *)arg;
+    struct lqe_connection_test_data *data = (struct lqe_connection_test_data *)arg;
     FILE *fp;
     char *peer_address_string = inet_ntoa(data->peer_address);
     char ping_cmd[100];

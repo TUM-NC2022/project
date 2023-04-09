@@ -465,7 +465,7 @@ parse_opt(int key, char *arg, struct argp_state *state)
 			exit(EXIT_FAILURE);
 		}
 
-		connection_test_data data;
+		lqe_connection_test_data data;
 		data.peer_address = cfg->lqe.peer_address;
 		data.socket = cfg->lqe.client_fd;
 

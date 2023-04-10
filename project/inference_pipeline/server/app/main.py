@@ -45,9 +45,9 @@ logging.basicConfig(
     handlers=[logging.FileHandler("app.log"), logging.StreamHandler()],
 )
 
-random.seed()  # Initialize the random number generator
-
+random.seed()
 labels = ["good", "interm.", "bad"]
+rssi_window10 = []
 
 def convert_rssi_to_value(rssi):
     print("RSSI: " + str(rssi))
@@ -56,8 +56,6 @@ def convert_rssi_to_value(rssi):
     if rssi < -95:
         return 128  # Error
     else:
-        # value = int((127/(-30)) * rssi + 127)
-        # value =  round((rssi-(-95))*(127-0)/(-35-(-95))+0)
         value = rssi + 95
         return value if value >= 0 else 0 
 
@@ -74,9 +72,8 @@ async def chart_data(request: Request) -> StreamingResponse:
     return response
 
 async def receive_data(request: Request) -> Iterator[str]:
-    
     while True:
-        print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), flush=True)
+        print(time.strftime("%H:%M:%S", time.localtime()), flush=True)
 
         data = connection.recv(1024)
         if not data:
@@ -132,9 +129,20 @@ async def receive_data(request: Request) -> Iterator[str]:
 
             # plot the dimensions and datatypes
             rssi = convert_rssi_to_value(rssi_dbm)
-            # print rssi
+
+            # add/replace the last value in the window
+            if len(rssi_window10) < 10:
+                rssi_window10.append(rssi)
+            else:
+                rssi_window10.pop(0)
+                rssi_window10.append(rssi)
+
+            rssi_avg = sum(rssi_window10) / len(rssi_window10)
+
             print("converted rssi: " + str(rssi))
-            y_pred = dtree.predict([[rssi, 7]])
+            print("rssi avg: " + str(rssi_avg))
+
+            y_pred = dtree.predict([[rssi, rssi_avg]])
             print("predicted lqe: " + y_pred)
 
             if y_pred == ['good']:
@@ -146,18 +154,21 @@ async def receive_data(request: Request) -> Iterator[str]:
 
             json_data = json.dumps(
             {
-                "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "time": datetime.now().strftime("%H:%M:%S"),
                 "lqe": y_pred,
-                "rss": rssi_dbm
+                "rss": rssi_dbm,
+                "rss_avg": rssi_avg - 95 # normalize to dBm
             }
             )
         
+            # yield for dashboard
             yield f"data:{json_data}\n\n"
-            print("yielded to dashboard")
-
+            print("-> yielded to dashboard")
+            
             # send lqe back to NCM
             packed_data = struct.pack('<I', y_pred)
             connection.sendall(packed_data)
-            print("sent back to NCM")
+            print("-> sent back to NCM")
+            print("--------------------")
 
         await asyncio.sleep(1)

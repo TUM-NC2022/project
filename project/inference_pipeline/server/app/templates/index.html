@@ -54,7 +54,7 @@
             const config = {
                 type: 'line',
                 data: {
-                    labels: Array(30).fill("0000-00-00 00:00:00"),
+                    labels: Array(30).fill("00:00:00"),
                     datasets: [{
                         label: "Link Quality",
                         backgroundColor: 'rgb(255, 99, 132)',
@@ -63,7 +63,6 @@
                         fill: false,
                     }],
                 },
-
 
                 options: {
                     // show graph line as straight line
@@ -112,7 +111,7 @@
                             },
                             scaleLabel: {
                                 display: true,
-                                labelString: 'Link Quality'
+                                labelString: 'Link Quality Estimate'
                             }
                         }]
                     }
@@ -125,28 +124,22 @@
 
             const source = new EventSource("/chart-data");
 
-            source.onmessage = function (event) {
-                const data = JSON.parse(event.data);
-                if (config.data.labels.length === 30) {
-                    config.data.labels.shift();
-                    config.data.datasets[0].data.shift();
-                }
-                config.data.labels.push(data.time);
-                config.data.datasets[0].data.push(data.lqe);
-                lineChart.update();
-            }
-        });
-    </script>
-    <script>
-        $(document).ready(function () {
-            const config = {
+
+            const config2 = {
                 type: 'line',
                 data: {
-                    labels: Array(30).fill("0000-00-00 00:00:00"),
+                    labels: Array(30).fill("00:00:00"),
                     datasets: [{
-                        label: "Link Quality",
+                        label: "Received Signal Strength (RSS)",
                         backgroundColor: 'rgb(255, 99, 13)',
                         borderColor: 'rgb(255, 99, 13)',
+                        data: Array(30).fill(null),
+                        fill: false,
+                    },
+                    {
+                        label: "Average RSS (Window Size = 10)",
+                        backgroundColor: 'rgb(100, 233, 203)',
+                        borderColor: 'rgb(100, 233, 203)',
                         data: Array(30).fill(null),
                         fill: false,
                     }],
@@ -190,28 +183,40 @@
                             },
                             scaleLabel: {
                                 display: true,
-                                labelString: 'RSS'
+                                labelString: 'dBm'
                             }
                         }]
                     }
                 }
             };
 
-            const context = document.getElementById('canvas2').getContext('2d');
+            const context2 = document.getElementById('canvas2').getContext('2d');
 
-            const lineChart = new Chart(context, config);
-
-            const source = new EventSource("/chart-data");
+            const lineChart2 = new Chart(context2, config2);
 
             source.onmessage = function (event) {
                 const data = JSON.parse(event.data);
+
+                // linechart LQE
                 if (config.data.labels.length === 30) {
                     config.data.labels.shift();
                     config.data.datasets[0].data.shift();
                 }
                 config.data.labels.push(data.time);
-                config.data.datasets[0].data.push(data.rss);
+                config.data.datasets[0].data.push(data.lqe);
+
+                // linechart RSS & RSS_avg
+                if (config2.data.labels.length === 30) {
+                    config2.data.labels.shift();
+                    config2.data.datasets[0].data.shift();
+                    config2.data.datasets[1].data.shift();
+                }
+                config2.data.labels.push(data.time);
+                config2.data.datasets[0].data.push(data.rss);
+                config2.data.datasets[1].data.push(data.rss_avg);
+
                 lineChart.update();
+                lineChart2.update();
             }
         });
     </script>

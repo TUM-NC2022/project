@@ -181,5 +181,3 @@ async def receive_data(request: Request) -> Iterator[str]:
             connection.sendall(packed_data)
             print("-> sent back to NCM")
             print("--------------------")
-
-        await asyncio.sleep(1)

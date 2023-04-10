@@ -56,7 +56,7 @@
                 data: {
                     labels: Array(30).fill("00:00:00"),
                     datasets: [{
-                        label: "Link Quality",
+                        label: "Link Quality Estimate",
                         backgroundColor: 'rgb(255, 99, 132)',
                         borderColor: 'rgb(255, 99, 132)',
                         data: Array(30).fill(null),
@@ -111,7 +111,7 @@
                             },
                             scaleLabel: {
                                 display: true,
-                                labelString: 'Link Quality Estimate'
+                                labelString: 'Link Quality'
                             }
                         }]
                     }
@@ -178,7 +178,7 @@
                             display: true,
                             ticks: {
                                 min: -95,
-                                max: -35,
+                                max: -10,
                                 stepSize: 1
                             },
                             scaleLabel: {

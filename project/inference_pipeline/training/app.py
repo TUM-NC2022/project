@@ -5,11 +5,13 @@ from helper.synthetic_features import SyntheticFeatures
 from sklearn import preprocessing, tree, model_selection
 from imblearn import pipeline, over_sampling
 import numpy as np
-from datasets.trace1_Rutgers.transform import get_traces as load_rutgers, dtypes
+from datasets.trace1_Rutgers.transform import get_traces as load_rutgers
 import joblib
-from typing import List, Tuple
+from typing import List
 import pandas as pd
 from sklearn.model_selection import train_test_split
+
+
 SEED = 0xDEADBEEF
 np.random.seed(SEED)
 np.set_printoptions(suppress=True)
@@ -23,10 +25,6 @@ def prr_to_label(prr: float) -> str:
         return "bad"
     return "interm."
 
-
-labels = ["good", "interm.", "bad"]
-
-## general inits
 @memory.cache
 def prepare_data():
     dataset = list(load_rutgers())
@@ -63,25 +61,7 @@ def prepare_data():
         dataset, include=["rssi", "rssi_avg", "rssi_std"], degree=4, include_bias=True
     )
     print("Polynomials applied ...")
-
-    # Special synthetic features
-    dataset["rssi^-1"] = 1.0 / dataset["rssi"]
-    dataset["rssi^-2"] = 1.0 / dataset["rssi^2"]
-    dataset["rssi^-3"] = 1.0 / dataset["rssi^3"]
-    dataset["rssi^-4"] = 1.0 / dataset["rssi^4"]
-
-    dataset["rssi_avg^-1"] = 1.0 / dataset["rssi_avg"]
-    dataset["rssi_avg^-2"] = 1.0 / dataset["rssi_avg^2"]
-    dataset["rssi_avg^-3"] = 1.0 / dataset["rssi_avg^3"]
-    dataset["rssi_avg^-4"] = 1.0 / dataset["rssi_avg^4"]
-
-    dataset["rssi_std^-1"] = 1.0 / dataset["rssi_std"]
-    dataset["rssi_std^-2"] = 1.0 / dataset["rssi_std^2"]
-    dataset["rssi_std^-3"] = 1.0 / dataset["rssi_std^3"]
-    dataset["rssi_std^-4"] = 1.0 / dataset["rssi_std^4"]
-
     return dataset
-
 
 def poly_features(
     df: pd.DataFrame,
@@ -115,9 +95,8 @@ def poly_features(
 
     return data
 
-# decision tree init
 features = ["rssi", "rssi_avg"]
-#features = ["rssi"]
+
 dtree = pipeline.Pipeline(
     [
         ("scaler", preprocessing.StandardScaler()),
@@ -126,7 +105,6 @@ dtree = pipeline.Pipeline(
     ]
 )
 
-# train decision tree
 df = prepare_data()
 
 # This is used for cross-validation. Typically used when observing performance of algorithm
@@ -135,19 +113,18 @@ cv = model_selection.StratifiedKFold(n_splits=3, shuffle=True, random_state=SEED
 dataset = df.replace([np.inf, -np.inf], np.nan).dropna(subset=features)
 
 X, y = df.drop(["class"], axis=1), df["class"].ravel()
-print(X)
-print("-----------------")
-print(X[features].values)
-print("-----------------")
-# Split the dataset into training and testing sets
+
+#Split the dataset into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(
-    X[features].values, y, random_state=10
+    X[features].values, y, stratify=y, random_state=10
 )
-print(X_test)
+
+#train the decision tree
 dtree.fit(X_train, y_train)
-y_pred = dtree.predict(X_test)
-print("-----------------")
-print(y_pred)
+score = dtree.score(X_test, y_test)
+
+print("score: " + str(score))
+
 # save dtree to a file
 joblib.dump(dtree, "dtree.joblib")
-print("saved model")
+print("-> saved model to file")

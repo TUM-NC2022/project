@@ -4,6 +4,41 @@ import pandas as pd
 from sklearn import base
 import numpy as np
 
+def interpolate_with_gaussian_noise(data: pd.Series) -> pd.Series:
+    """Couldn't find a proper name. Very slow ..."""
+    DTYPE = np.float32
+
+    series = data.astype(DTYPE)
+    values = series.tolist()
+    processed = []
+
+    series_size = len(values)
+
+    prev_rssi = 0
+    prev_seq = -1
+    for seq, rssi in enumerate(values):
+        if not np.isnan(rssi):
+            avg_rssi = np.mean([prev_rssi, rssi])
+            std_rssi = np.std([prev_rssi, rssi])
+            std_rssi = std_rssi if std_rssi > 0 else np.nextafter(DTYPE(0), DTYPE(1))
+            diff = seq - prev_seq - 1
+
+            processed.extend(np.random.normal(avg_rssi, std_rssi, size=diff))
+            processed.append(rssi)
+            prev_seq, prev_rssi = seq, rssi
+
+    avg_rssi = np.mean([prev_rssi, 0.])
+    std_rssi = np.std([prev_rssi, 0.])
+    diff = series_size - prev_seq - 1
+    processed.extend(np.random.normal(avg_rssi, std_rssi, size=diff))
+
+    series = pd.Series(data=processed, index=data.index, dtype=DTYPE)
+    return series
+
+def interpolate_with_constant(data: pd.Series, constant: int = 0) -> pd.Series:
+    """Interpolate missing values with constant value."""
+    return data.fillna(value=constant)
+
 class CustomInterpolation(base.BaseEstimator, base.TransformerMixin):
     """Custom interpolation function to be used in"""
     
@@ -58,33 +93,3 @@ class CustomInterpolation(base.BaseEstimator, base.TransformerMixin):
 
         return self.do_interpolation(X)
     
-def interpolate_with_gaussian_noise(data: pd.Series) -> pd.Series:
-    """Couldn't find a proper name. Very slow ..."""
-    DTYPE = np.float32
-
-    series = data.astype(DTYPE)
-    values = series.tolist()
-    processed = []
-
-    series_size = len(values)
-
-    prev_rssi = 0
-    prev_seq = -1
-    for seq, rssi in enumerate(values):
-        if not np.isnan(rssi):
-            avg_rssi = np.mean([prev_rssi, rssi])
-            std_rssi = np.std([prev_rssi, rssi])
-            std_rssi = std_rssi if std_rssi > 0 else np.nextafter(DTYPE(0), DTYPE(1))
-            diff = seq - prev_seq - 1
-
-            processed.extend(np.random.normal(avg_rssi, std_rssi, size=diff))
-            processed.append(rssi)
-            prev_seq, prev_rssi = seq, rssi
-
-    avg_rssi = np.mean([prev_rssi, 0.])
-    std_rssi = np.std([prev_rssi, 0.])
-    diff = series_size - prev_seq - 1
-    processed.extend(np.random.normal(avg_rssi, std_rssi, size=diff))
-
-    series = pd.Series(data=processed, index=data.index, dtype=DTYPE)
-    return series

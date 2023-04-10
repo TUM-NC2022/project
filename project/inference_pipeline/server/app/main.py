@@ -52,8 +52,8 @@ rss_window10 = []
 
 def convert_rssi_to_value(rssi):
     print("RSSI: " + str(rssi))
-    if rssi > -35:
-        return 128  # Error
+    # if rssi > -35:
+    #     return 128  # Error
     if rssi < -95:
         return 128  # Error
     else:
@@ -166,7 +166,9 @@ async def receive_data(request: Request) -> Iterator[str]:
                 "time": datetime.now().strftime("%H:%M:%S"),
                 "lqe": y_pred,
                 "rss": rssi_dbm,
-                "rss_avg": rss_avg
+                "rss_avg": rss_avg,
+                "rssi": rssi,
+                "rssi_avg": rssi_avg
             }
             )
         

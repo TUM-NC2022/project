@@ -35,6 +35,15 @@
                     </div>
                 </div>
             </div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <canvas id="canvas3"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     <!--suppress JSUnresolvedLibraryURL -->
@@ -155,7 +164,7 @@
                     responsive: true,
                     title: {
                         display: true,
-                        text: 'Received Signal Strength'
+                        text: 'Received Signal Strength from NCM'
                     },
                     tooltips: {
                         mode: 'index',
@@ -194,6 +203,75 @@
 
             const lineChart2 = new Chart(context2, config2);
 
+            const config3 = {
+                type: 'line',
+                data: {
+                    labels: Array(30).fill("00:00:00"),
+                    datasets: [{
+                        label: "Converted Signal Strength Indicator (RSSI)",
+                        backgroundColor: 'rgb(255, 99, 13)',
+                        borderColor: 'rgb(255, 99, 13)',
+                        data: Array(30).fill(null),
+                        fill: false,
+                    },
+                    {
+                        label: "Average RSSI (Window Size = 10)",
+                        backgroundColor: 'rgb(100, 233, 203)',
+                        borderColor: 'rgb(100, 233, 203)',
+                        data: Array(30).fill(null),
+                        fill: false,
+                    }],
+                },
+
+                options: {
+                    // show graph line as straight line
+                    elements: {
+                        line: {
+                            tension: 0
+                        }
+                    },
+                    responsive: true,
+                    title: {
+                        display: true,
+                        text: 'Converted Signal Strength (RSSI) - Input for Decision Tree'
+                    },
+                    tooltips: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    hover: {
+                        mode: 'nearest',
+                        intersect: true
+                    },
+                    scales: {
+                        xAxes: [{
+                            display: true,
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Time'
+                            }
+                        }],
+                        //only show 0, 0.5, 1 values on y-axis and rename them to "Bad", "Medium", "Good"
+                        yAxes: [{
+                            display: true,
+                            ticks: {
+                                min: 0,
+                                max: 128,
+                                stepSize: 1
+                            },
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Indicator'
+                            }
+                        }]
+                    }
+                }
+            };
+
+            const context3 = document.getElementById('canvas3').getContext('2d');
+
+            const lineChart3 = new Chart(context3, config3);
+
             source.onmessage = function (event) {
                 const data = JSON.parse(event.data);
 
@@ -215,8 +293,19 @@
                 config2.data.datasets[0].data.push(data.rss);
                 config2.data.datasets[1].data.push(data.rss_avg);
 
+                // linechart RSSI & RSSI_avg
+                if (config3.data.labels.length === 30) {
+                    config3.data.labels.shift();
+                    config3.data.datasets[0].data.shift();
+                    config3.data.datasets[1].data.shift();
+                }
+                config3.data.labels.push(data.time);
+                config3.data.datasets[0].data.push(data.rssi);
+                config3.data.datasets[1].data.push(data.rssi_avg);
+
                 lineChart.update();
                 lineChart2.update();
+                lineChart3.update();
             }
         });
     </script>

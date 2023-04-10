@@ -1,21 +1,14 @@
 #ifndef _NCM_H_
 #define _NCM_H_
 
+#include <netinet/in.h>
+
 #include <moep/system.h>
 #include <moep/types.h>
 #include <moep/ieee80211_addr.h>
 #include <moep/ieee80211_frametypes.h>
 
 #include "frametypes.h"
-
-// PZ
-struct lqe_socket
-{
-	int client_fd;
-	int port;
-};
-
-typedef struct lqe_socket lqe_socket;
 
 int ncm_frame_type(moep_frame_t frame);
 

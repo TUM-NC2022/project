@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <pthread.h>
 #include <moep/system.h>
 #include <moep/types.h>
 #include <moep/radiotap.h>
@@ -12,7 +16,7 @@
 #include "neighbor.h"
 #include "lqe.h"
 
-// PZ
+// Pushes statistics of the current link via the LQE socket
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket)
@@ -53,7 +57,7 @@ void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket)
     uplink = nb_ul_quality(session_find_remote_address(s), &p, &q),
     downlink = nb_dl_quality(session_find_remote_address(s), NULL, NULL),
 
-    // Fill the session_info struct with data
+    // Fill the session_info struct with data from session
         snprintf(session_info.session, sizeof(session_info.session), "%s:%s", ether_ntoa((const struct ether_addr *)s), ether_ntoa((const struct ether_addr *)s + IEEE80211_ALEN));
     session_info.count = s->state.count;
     session_info.TX_data = (float)((double)s->state.tx.data / (double)s->state.count);
@@ -71,7 +75,7 @@ void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket)
     session_info.downlink = (float)downlink;
     session_info.qdelay = (float)qdelay_get();
 
-    // Radiotap stuff
+    // Fill the session_info struct with data from radiotap header of frame
     if (rt != NULL)
     {
         session_info.rate = rt->rate;
@@ -96,41 +100,6 @@ void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket)
     // Copy in order to make sure that data didn't change while sending via socket
     lqe_info_data session_info_sending = session_info;
 
-    /*
-    printf("session: %s\n"
-           "count\t%d\n"
-           "tx.data\t%.2f\n"
-           "tx.ack\t%.2f\n"
-           "rx.data\t%.2f\n"
-           "rx.ack\t%.2f\n"
-           "rx.excess_data\t%.2f\n"
-           "rx.late_data\t%.2f\n"
-           "rx.late_ack\t%.f\n"
-           "tx.redundant\t%.2f\n"
-           "redundancy\t%.2f\n"
-           "uplink\t%.2f\n"
-           "p = %d, q = %d\n"
-           "downlink\t%.2f\n"
-           "qdelay\t%.4f\n"
-           "\n",
-           session_info_sending.session,
-           session_info_sending.count,
-           session_info_sending.TX_data,
-           session_info_sending.TX_ack,
-           session_info_sending.RX_data,
-           session_info_sending.RX_ack,
-           session_info_sending.RX_EXCESS_DATA,
-           session_info_sending.RX_LATE_DATA,
-           session_info_sending.RX_LATE_ACK,
-           session_info_sending.TX_REDUNDANT,
-           session_info_sending.redundancy,
-           session_info_sending.uplink,
-           session_info_sending.p,
-           session_info_sending.q,
-           session_info_sending.downlink,
-           session_info_sending.qdelay);
-    */
-
     // Send the product data to the client
     if (socket != -1)
     {
@@ -139,11 +108,215 @@ void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket)
         if (send(socket, &session_info_sending, sizeof(lqe_info_data), 0) < 0)
         {
             LOG(LOG_INFO, "session_push_data: Sending data failed!");
-            exit(EXIT_FAILURE);
         }
     }
     else
     {
         LOG(LOG_INFO, "session_push_data: Socket not open!");
     }
+}
+
+// Starts the thread that receives link quality estimations from the socket connection
+void start_connection_test(lqe_connection_test_data data)
+{
+    // Allocate new memory for the data
+    lqe_connection_test_data *new_data = (lqe_connection_test_data *)malloc(sizeof(lqe_connection_test_data));
+    if (!new_data)
+    {
+        LOG(LOG_ERR, "Error allocating memory for data\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Copy the data to the new memory
+    memcpy(new_data, &data, sizeof(lqe_connection_test_data));
+
+    pthread_t tid;
+    int rc;
+
+    rc = pthread_create(&tid, NULL, connection_test_thread, new_data);
+    if (rc)
+    {
+        LOG(LOG_ERR, "Return code from pthread_create() is %d\n", rc);
+        free(new_data);
+        exit(EXIT_FAILURE);
+    }
+
+    // Detach the thread
+    pthread_detach(tid);
+}
+
+// Runs in a seperate thread
+// Pings a specified peer address and prints the received link quality estimations
+void *connection_test_thread(void *arg)
+{
+    // sleep(10); // Wait for the connection to be established between both nodes
+
+    LOG(LOG_INFO, "Thread that performs the connection test started");
+
+    lqe_connection_test_data *lqe_data = (lqe_connection_test_data *)arg;
+    char *peer_address_string = inet_ntoa(lqe_data->peer_address);
+    char ping_cmd[100];
+    sprintf(ping_cmd, "ping -c 5 -i 1 -s 1000 %s", peer_address_string); // 5 times, 1 second interval, 1200 bytes payload
+
+    // Signal handler
+    struct sigaction sa;
+    sa.sa_handler = rt_signal_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+
+    if (sigaction(SIGRTMIN, &sa, NULL) == -1)
+    {
+        perror("sigaction");
+        return 1;
+    }
+
+    /*
+    // Execute the ping command
+    system(ping_cmd);
+    LOG(LOG_INFO, "Connection test ping command is executed");
+
+    // Wait for incoming data from LQE socket and print it (should be exacly 5 data points)
+    int values[5];
+    for (int i = 0; i < 5; i++)
+    {
+        int bytes_read = recv(lqe_data->socket, &values[i], sizeof(values[i]), 0);
+
+        if (bytes_read < 0)
+        {
+            LOG(LOG_ERR, "Error return code from recv of LQE data socket");
+            //exit(EXIT_FAILURE);
+        }
+        if (bytes_read == 0)
+        {
+            LOG(LOG_ERR, "Socket for recv of LQE data closed");
+            //exit(EXIT_FAILURE);
+        }
+
+        values[i] = ntohl(values[i]);
+        LOG(LOG_INFO, "Received: %d", values[i]);
+    }
+
+    LOG(LOG_INFO, "Connection test completed");
+
+    */
+
+    char buf[4096];
+    FILE *fp;
+    int status;
+
+    // Execute the command and capture its output
+    fp = popen(ping_cmd, "r");
+    if (fp == NULL)
+    {
+        LOG(LOG_ERR, "Failed to execute the ping command");
+        exit(EXIT_FAILURE);
+    }
+
+    // Read the output of the command
+    while (fgets(buf, sizeof(buf), fp) != NULL) {
+        LOG(LOG_INFO, "%s", buf);
+    }
+
+    // Close the file stream
+    status = pclose(fp);
+    if (status == -1)
+    {
+        LOG(LOG_ERR, "Failed to close the file descriptor reading from the command");
+        exit(EXIT_FAILURE);
+    }
+
+    LOG(LOG_INFO, "Connection test is finished");
+
+    free(lqe_data);
+    pthread_exit(NULL);
+}
+
+void receive_link_quality_estimations(lqe_connection_test_data data)
+{
+    // Allocate new memory for the data
+    lqe_connection_test_data *new_data = (lqe_connection_test_data *)malloc(sizeof(lqe_connection_test_data));
+    if (!new_data)
+    {
+        LOG(LOG_ERR, "Error allocating memory for data\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Copy the data to the new memory
+    memcpy(new_data, &data, sizeof(lqe_connection_test_data));
+
+    pthread_t tid;
+    int rc;
+
+    rc = pthread_create(&tid, NULL, receive_lqe_thread, new_data);
+    if (rc)
+    {
+        LOG(LOG_ERR, "Return code from pthread_create() is %d\n", rc);
+        free(new_data);
+        exit(EXIT_FAILURE);
+    }
+
+    // Detach the thread
+    pthread_detach(tid);
+}
+
+void *receive_lqe_thread(void *arg)
+{
+    lqe_connection_test_data *lqe_data = (lqe_connection_test_data *)arg;
+
+    LOG(LOG_INFO, "Thread that performs the receival of link quality estimations started");
+
+    // Signal handler
+    struct sigaction sa;
+    sa.sa_handler = rt_signal_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+
+    if (sigaction(SIGRTMIN, &sa, NULL) == -1)
+    {
+        perror("sigaction");
+        return 1;
+    }
+
+    // Read data from the socket
+    uint32_t data;
+    ssize_t num_read;
+    while (1)
+    {
+        num_read = read(lqe_data->socket, &data, sizeof(data));
+
+        if (num_read == -1)
+        {
+            if (errno == EINTR)
+            {
+                // Retry the read() call
+                LOG(LOG_ERR, "Retry the read call");
+                continue;
+            }
+            else
+            {
+                LOG(LOG_ERR, "Error while reading from the socket");
+                exit(EXIT_FAILURE);
+            }
+        }
+        else if (num_read == 0)
+        {
+            // Connection closed by remote peer
+            LOG(LOG_ERR, "Connection closed by remote peer");
+            break;
+        }
+        else
+        {
+            // Data received
+            LOG(LOG_INFO, "Received link quality estimation: %u\n", ntohl(data));
+        }
+    }
+
+    free(lqe_data);
+    pthread_exit(NULL);
+}
+
+void rt_signal_handler(int sig)
+{
+    // printf("Real-time signal %d received\n", sig);
+    // handle the signal here
 }

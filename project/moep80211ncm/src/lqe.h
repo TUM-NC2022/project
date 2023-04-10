@@ -1,14 +1,25 @@
 #ifndef _LQE_H_
 #define _LQE_H_
 
+#include <arpa/inet.h>
+
 #include <moep/system.h>
 #include <moep/types.h>
 #include <moep/modules/moep80211.h>
 
-// #include "generation.h"
 #include "session.h"
 
-// PZ - Struct that holds info about the session that is pushed via LQE socket
+// Struct type that holds data regarding the LQE estimation
+struct lqe
+{
+    int client_fd;
+    int port;
+    struct in_addr peer_address;
+};
+
+typedef struct lqe lqe;
+
+// Struct that holds info about the session that is pushed via LQE socket
 typedef struct
 {
     // From session
@@ -48,12 +59,22 @@ typedef struct
     int MCS_flags;
     int MCS_MCS;
 
-    // remote address + Master slave
+    // Remote address + Master/Slave
     int remoteAddress;
     int masterOrSlave; // -1 neither, 0 slave, 1 master
 } lqe_info_data;
 
-// PZ
+typedef struct
+{
+    int socket;
+    struct in_addr peer_address;
+} lqe_connection_test_data;
+
 void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket);
+void start_connection_test(lqe_connection_test_data lqe_connection_test_data);
+void *connection_test_thread(void *arg);
+void receive_link_quality_estimations(lqe_connection_test_data lqe_connection_test_data);
+void *receive_lqe_thread(void *arg);
+void rt_signal_handler(int sig);
 
 #endif

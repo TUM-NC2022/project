@@ -7,12 +7,12 @@ on:
       - "develop"
 
 env:
-  IMAGE_NAME_INFERENCE: philippzagar/ncm-inference
+  IMAGE_NAME_TRAINING: philippzagar/ncm-training
   IMAGE_NAME_SERVER: philippzagar/ncm-server
   IMAGE_NAME_NCM: philippzagar/ncm-debian
 
 jobs:
-  build-push-inference:
+  build-push-training:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -35,12 +35,12 @@ jobs:
       - name: Build and push client
         uses: docker/build-push-action@v3
         with:
-          context: project/inference_pipeline/inference
-          tags: ${{ env.IMAGE_NAME_INFERENCE }}
+          context: project/inference_pipeline/training
+          tags: ${{ env.IMAGE_NAME_TRAINING }}
           push: true
           platforms: linux/amd64,linux/arm64
-          cache-from: type=registry,ref=${{ env.IMAGE_NAME_INFERENCE }}:buildcache
-          cache-to: type=registry,ref=${{ env.IMAGE_NAME_INFERENCE }}:buildcache,mode=max
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME_TRAINING }}:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_NAME_TRAINING }}:buildcache,mode=max
 
   build-push-server:
     runs-on: ubuntu-latest
@@ -92,7 +92,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push API
+      - name: Build and push NCM
         uses: docker/build-push-action@v3
         with:
           context: project/moep80211ncm
@@ -104,7 +104,7 @@ jobs:
 
   deploy-1:
     runs-on: ubuntu-latest
-    needs: [build-push-inference, build-push-server, build-push-ncm]
+    needs: [build-push-training, build-push-server, build-push-ncm]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -134,7 +134,7 @@ jobs:
 
   deploy-2:
     runs-on: ubuntu-latest
-    needs: [build-push-inference, build-push-server, build-push-ncm]
+    needs: [build-push-training, build-push-server, build-push-ncm]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -161,3 +161,48 @@ jobs:
             docker compose down
             docker compose pull
             docker compose up -d
+
+  start-libmoep:
+    runs-on: ubuntu-latest
+    needs: [deploy-1, deploy-2]
+    steps:
+      - name: Start Libmoep Master
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PORT1 }}
+          # Add -l 10123 to the command below in order to execute the LQE (with socket pushing etc.)
+          # "-l 10123" to collect and push link statistics to PORT 10123
+          # "-c 10.0.1.9" to perform a connection test with the IP 10.0.1.9 at startup
+          # "-q" to receive the predicted LQEs from the backend and print hem
+          script: |
+            sleep 5
+            docker exec -i ncm-debian sh -c "tmux new-session -d -s ncm ./ncm wlp1s0 2412M -i 10.0.1.32 -hht40+ -r 0 -l 10123"
+
+      - name: Start Libmoep Slave
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PORT2 }}
+          script: |
+            sleep 5
+            docker exec -i ncm-debian sh -c "tmux new-session -d -s ncm ./ncm wlp1s0 2412M -i 10.0.1.9 -hht40+ -r 0 -l 10123"
+
+  start-ping:
+    runs-on: ubuntu-latest
+    needs: [start-libmoep]
+    steps:
+      - name: Start Ping
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PORT1 }}
+          script: |
+            sleep 5
+            docker exec -i ncm-debian sh -c "tmux new-session -d -s ping ping -s 1000 10.0.1.9"

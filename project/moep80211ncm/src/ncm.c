@@ -58,7 +58,6 @@
 #include "qdelay.h"
 #include "neighbor.h"
 #include "linkstate.h"
-// PZ
 #include "lqe.h"
 
 #define TASK_NCM_BEACON 0
@@ -170,12 +169,21 @@ static struct argp_option options[] = {
 	 .arg = "THETA",
 	 .flags = 0,
 	 .doc = "confidence level theta"},
-	// PZ
 	{.name = "link-quality-estimation",
 	 .key = 'l',
 	 .arg = "PORT",
 	 .flags = 0,
-	 .doc = "AI Link Quality Estimation"},
+	 .doc = "Enables the push of link quality data to a socket running on the specified PORT"},
+	{.name = "connection-test",
+	 .key = 'c',
+	 .arg = "PEER_ADDRESS",
+	 .flags = 0,
+	 .doc = "Perform a connection test at NCM startup and adjust parameters accordingly"},
+	{.name = "receive link quality estimations",
+	 .key = 'q',
+	 .arg = NULL,
+	 .flags = 0,
+	 .doc = "Starts the receival of link quality estimations and prints it to the console"},
 	{NULL}};
 
 static error_t
@@ -201,8 +209,8 @@ static struct cfg
 	struct params_session session;
 	struct params_jsm jsm;
 
-	// PZ
-	struct lqe_socket lqe_socket;
+	// Stores the socket connection and helpers for link quality transmissions
+	struct lqe lqe;
 } cfg;
 
 static error_t
@@ -212,7 +220,7 @@ parse_opt(int key, char *arg, struct argp_state *state)
 	char *endptr = NULL;
 	long long int freq;
 	int size;
-	// PZ
+	// Holds the temporary socket address used to open to socket connection regarding the link quality estimations
 	struct sockaddr_in address;
 
 	switch (key)
@@ -417,34 +425,76 @@ parse_opt(int key, char *arg, struct argp_state *state)
 		sscanf(arg, "%f", &cfg->session.theta);
 		ralqe_theta = cfg->session.theta;
 		break;
-	// PZ
+	// Option case enabelling the tranmission of link quality data to a socket open at a certain port
 	case 'l':
-		cfg->lqe_socket.port = strtol(arg, &endptr, 0);
+		// Parse the PORT argument
+		cfg->lqe.port = strtol(arg, &endptr, 0);
 		if (endptr != NULL && endptr != arg + strlen(arg))
 			argp_failure(state, 1, errno, "Invalid LQE port: %s", arg);
 
-		LOG(LOG_INFO, "socket is starting on port %d!", cfg->lqe_socket.port);
+		LOG(LOG_INFO, "socket is starting on port %d!", cfg->lqe.port);
 
 		// Creating socket file descriptor
-		if ((cfg->lqe_socket.client_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+		if ((cfg->lqe.client_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
 		{
-			LOG(LOG_INFO, "creation of socket failed");
+			LOG(LOG_ERR, "creation of socket failed");
 			exit(EXIT_FAILURE);
 		}
 
 		// Set server address and port
 		address.sin_family = AF_INET;
-		address.sin_addr.s_addr = inet_addr("127.0.0.1");	// TODO: Replace this by "ncm-server"
-		address.sin_port = htons(cfg->lqe_socket.port);
+		address.sin_addr.s_addr = inet_addr("127.0.0.1");
+		address.sin_port = htons(cfg->lqe.port);
 
 		// Connect to the server
-		if (connect(cfg->lqe_socket.client_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
+		if (connect(cfg->lqe.client_fd, (struct sockaddr *)&address, sizeof(address)) < 0)
 		{
-			LOG(LOG_INFO, "socket connect failed");
+			LOG(LOG_ERR, "socket connect failed");
 			exit(EXIT_FAILURE);
 		}
 
 		LOG(LOG_INFO, "socket is connected!");
+
+		break;
+	// Option case that enables the connection test at startup of the NCM
+	case 'c':
+		// Parse the peer address argument
+		if (!inet_aton(arg, &cfg->lqe.peer_address))
+			argp_failure(state, 1, errno, "Invalid peer ip address");
+
+		char *peer_address_string = inet_ntoa(cfg->lqe.peer_address);
+		LOG(LOG_INFO, "Connection test is starting to peer with ip address %s!", peer_address_string);
+
+		// Check if the link quality socket is open
+		if (cfg->lqe.client_fd == -1)
+		{
+			LOG(LOG_ERR, "Transmission of link quality data not configured, this is required for the connection test!");
+			exit(EXIT_FAILURE);
+		}
+
+		lqe_connection_test_data connection_test_data;
+		connection_test_data.peer_address = cfg->lqe.peer_address;
+		connection_test_data.socket = cfg->lqe.client_fd;
+
+		// Start the receival of link quality estimations in a seperate thread
+		start_connection_test(connection_test_data);
+
+		break;
+	// Option case that enables the receival of link quality estimations
+	case 'q':
+		// Check if the link quality socket is open
+		if (cfg->lqe.client_fd == -1)
+		{
+			LOG(LOG_ERR, "Transmission of link quality data not configured, this is required for the connection test!");
+			exit(EXIT_FAILURE);
+		}
+
+		lqe_connection_test_data receival_lqe_data;
+		receival_lqe_data.peer_address = cfg->lqe.peer_address;
+		receival_lqe_data.socket = cfg->lqe.client_fd;
+
+		// Start the receival of link quality estimations in a seperate thread
+		receive_link_quality_estimations(receival_lqe_data);
 
 		break;
 	case ARGP_KEY_ARG:
@@ -511,9 +561,6 @@ send_beacon(timeout_t t, u32 overrun, void *data)
 	(void)overrun;
 	session_log_state();
 
-	// PZ
-	// Old location of the pushing of data via LQE socket
-
 	moep_frame_t frame;
 	struct moep80211_hdr *hdr;
 	struct ncm_hdr_beacon *beacon;
@@ -561,6 +608,14 @@ signal_handler(struct signalfd_siginfo *siginfo, void *null)
 		{
 			LOG(LOG_ERR, "timeout_exec() failed");
 		}
+	}
+	else if (siginfo->ssi_signo == SIGWINCH)
+	{
+		LOG(LOG_WARNING, "signal_handler(): Signal SIGWINCH received (meaning window size changed)");
+	}
+	else if (siginfo->ssi_signo == SIGPIPE)
+	{
+		LOG(LOG_WARNING, "signal_handler(): Signal SIGPIPE received (meaning pipe changes)");
 	}
 	else
 	{
@@ -853,30 +908,14 @@ radh(moep_dev_t dev, moep_frame_t frame)
 		if (!(s = session_find(coded->sid)))
 			s = session_register(&cfg.session, NULL, coded->sid);
 
-		// PZ - always pushes the LQE updates on the socket (location makes sense?)
-		// This now only gets triggered when actual data is received (e.g. via ping cmd)
-		if (cfg.lqe_socket.client_fd != -1 && rt != NULL)
+		// Upon receival of coded packets, push the link quality updates on the LQE socket
+		if (cfg.lqe.client_fd != -1 && rt != NULL)
 		{
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-			lqe_push_data(s, rt, cfg.lqe_socket.client_fd);
+			lqe_push_data(s, rt, cfg.lqe.client_fd);
 #pragma GCC diagnostic pop
 		}
-
-		// PZ - write RSSI, noise etc. into the session here?
-
-		// PZ
-		// Get RSSI from radiotap header
-		// LOG(LOG_INFO, "Signal: %hhd", rt->signal);
-		// LOG(LOG_INFO, "Noise: %hhd\n", rt->noise);
-		// LOG(LOG_INFO, "Rate: %hhu", rt->rate);
-		// LOG(LOG_INFO, "Signal_DB: %hhu", rt->signal_dB);	// close to 0, not sure if it is relevant
-		// LOG(LOG_INFO, "Noise_DB: %hhu\n", rt->noise_dB);	// close to 0, not sure if it is relevant
-		//  LOG(LOG_INFO, "TX power: %hhd\n", rt->tx_power);	// always 0, not useful (is it because TX = transmission power=)
-		// rt->signal;	   // RF signal power at the antenna. This field contains a single signed 8-bit value, which indicates the RF signal power at the antenna, in decibels difference from 1mW.
-		// rt->noise;	   // RF noise power at the antenna. This field contains a single signed 8-bit value, which indicates the RF signal power at the antenna, in decibels difference from 1mW.
-		// rt->signal_dB; // RF signal power at the antenna, decibel difference from an arbitrary, fixed reference. This field contains a single unsigned 8-bit value.
-		// rt->noise_dB;  // RF noise power at the antenna, decibel difference from an arbitrary, fixed reference. This field contains a single unsigned 8-bit value.
 
 		session_decoder_add(s, frame);
 		break;
@@ -951,8 +990,8 @@ void cfg_init()
 	cfg.wlan.rt.mcs.flags = IEEE80211_RADIOTAP_MCS_BW_20;
 
 	// PZ
-	cfg.lqe_socket.client_fd = -1;
-	cfg.lqe_socket.port = -1;
+	cfg.lqe.client_fd = -1;
+	cfg.lqe.port = -1;
 }
 
 static int
@@ -1071,9 +1110,9 @@ int main(int argc, char **argv)
 	moep_dev_close(cfg.tap.dev);
 
 	// PZ
-	if (cfg.lqe_socket.client_fd != -1)
+	if (cfg.lqe.client_fd != -1)
 	{
-		close(cfg.lqe_socket.client_fd);
+		close(cfg.lqe.client_fd);
 	}
 
 	return ret;

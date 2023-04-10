@@ -1,21 +1,6 @@
 version: '3'
 
 services:
-  ncm-inference:
-    image: philippzagar/ncm-inference:latest
-    container_name: "ncm-inference"
-    build: ./inference_pipeline/inference
-    ports:
-      - "3000:80" # Map host port 3000 to container port 80
-    networks:
-      - ncm-network
-    restart: unless-stopped
-    depends_on:
-      ncm-server:
-        condition: service_started
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
   ncm-server:
     image: philippzagar/ncm-server:latest
     container_name: "ncm-server"
@@ -23,6 +8,7 @@ services:
     ports:
       - "8080:8080" # Map host port 8080 to container port 80
       - "5000:5000" # Socket connection to ncm-inference
+      - "10123:10123" # Socket connection to ncm-debian (so libmoep)
     networks:
       - ncm-network
     restart: unless-stopped
@@ -32,13 +18,9 @@ services:
     container_name: "ncm-debian"
     build: ./moep80211ncm
     platform: linux/amd64 # This is necessary to run the container on a NCM
-    # networks:
-    #   - ncm-network
     restart: unless-stopped
     depends_on:
       ncm-server:
-        condition: service_started
-      ncm-inference:
         condition: service_started
     privileged: true
     cap_add:

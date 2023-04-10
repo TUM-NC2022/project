@@ -57,7 +57,7 @@ void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket)
     uplink = nb_ul_quality(session_find_remote_address(s), &p, &q),
     downlink = nb_dl_quality(session_find_remote_address(s), NULL, NULL),
 
-    // Fill the session_info struct with data
+    // Fill the session_info struct with data from session
         snprintf(session_info.session, sizeof(session_info.session), "%s:%s", ether_ntoa((const struct ether_addr *)s), ether_ntoa((const struct ether_addr *)s + IEEE80211_ALEN));
     session_info.count = s->state.count;
     session_info.TX_data = (float)((double)s->state.tx.data / (double)s->state.count);
@@ -75,7 +75,7 @@ void lqe_push_data(session_t s, struct moep80211_radiotap *rt, int socket)
     session_info.downlink = (float)downlink;
     session_info.qdelay = (float)qdelay_get();
 
-    // Radiotap stuff
+    // Fill the session_info struct with data from radiotap header of frame
     if (rt != NULL)
     {
         session_info.rate = rt->rate;

@@ -1,11 +1,16 @@
 # NC2022 project - Team 06 (Zagar & Madlener)
 This project contains two main parts, NCM and Inference, located in `project/moep80211ncm` and `project/inference_pipeline` respectively.
 
-## NCM
-TODO
+## libmoep-ncm
+The libmoep-ncm utilized for this project resides within the `project/moep80211ncm` folder. We adjusted the library to serve our LQE project purposes.
+The functionality implemented can be controlled via the following parameters passed to the library at startup:
+- Link Quality Statistics Collection (`-l <PORT>`):  This argument activates link quality statistics collection and transmits all formatted data through a TCP socket operating on localhost (the LQE backend) on a designated port (specified by the PORT argument). Most of the statistics are captured from the session or radiotap headers.
+- Startup Connection Test (`-c <IP>`): When this flag is enabled, the libmoep-ncm library conducts a
+connection test to the specified IP address (provided by the IP argument) during startup. (The `-l <PORT>` argument is required for this flag)
+- Predicted Link Quality Estimation Reception from Backend (`-q`): This flag allows for receiving and printing predicted link quality estimations from the LQE backend. (The `-l <PORT>` argument is required for this flag)
 
 ## Inference Pipeline
-The inference pipeline consists of three main parts. Training for initial model training with the Rutgers dataset. Server (and NCM Mock) for the actual inference pipeline, i.e. estimating Link qualities in real time.
+The inference pipeline consists of three main parts (located in `project/inference_pipeline`). Training for initial model training with the Rutgers dataset. Server (and NCM Mock) for the actual inference pipeline, i.e. estimating Link qualities in real time.
 
 ### Training
 - Python application for dataset pre-processing (synthetic feature generation) and decision tree training
@@ -45,3 +50,8 @@ We implemented a docker-compose.local.yml and a mock-NCM so you can run the infe
 - Make sure you have Docker installed on your machine (https://docs.docker.com/get-docker/)
 - Change to `project/inference_pipeline/` and run `docker-compose -f docker-compose.local.yml up --build`
 - Open http://localhost:8080/ in your browser
+
+## Containerization and CI/CD pipeline
+The entire software stack written in this project is containerized and is integrated, built and deployed via a CI/CD pipeline. Furthermore, the pipeline is able to execute certain commands in a tmux session to simplify development and demo effort (e.g. starting the libmoep-ncm library or establishing a connection between NCMs via the `ping` command).
+The respective files for the containerization can be found in `project/docker-compose.yml` as well as the Dockerfiles in `project/moep80211ncm` and `project/inference_pipeline`.
+The configuration file for the CI/CD pipeline can be found in `.github/workflows/main.yml`. Here one can adjust the hardware that is being deployed to as well as commands executed in tmux sessions etc.

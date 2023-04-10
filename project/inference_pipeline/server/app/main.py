@@ -48,6 +48,7 @@ logging.basicConfig(
 random.seed()
 labels = ["good", "interm.", "bad"]
 rssi_window10 = []
+rss_window10 = []
 
 def convert_rssi_to_value(rssi):
     print("RSSI: " + str(rssi))
@@ -137,7 +138,15 @@ async def receive_data(request: Request) -> Iterator[str]:
                 rssi_window10.pop(0)
                 rssi_window10.append(rssi)
 
+            # add/replace the last value in the window
+            if len(rss_window10) < 10:
+                rss_window10.append(rssi_dbm)
+            else:
+                rss_window10.pop(0)
+                rss_window10.append(rssi_dbm)
+
             rssi_avg = sum(rssi_window10) / len(rssi_window10)
+            rss_avg = sum(rss_window10) / len(rss_window10)
 
             print("converted rssi: " + str(rssi))
             print("rssi avg: " + str(rssi_avg))
@@ -157,7 +166,7 @@ async def receive_data(request: Request) -> Iterator[str]:
                 "time": datetime.now().strftime("%H:%M:%S"),
                 "lqe": y_pred,
                 "rss": rssi_dbm,
-                "rss_avg": rssi_avg - 95 # normalize to dBm
+                "rss_avg": rss_avg
             }
             )
         
